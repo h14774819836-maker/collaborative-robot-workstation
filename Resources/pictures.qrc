@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="background">
+    <file>校徽.png</file>
+    <file>相机.png</file>
+    <file>实时监测.png</file>
+    <file>坐标标定.png</file>
+  </qresource>
+</RCC>

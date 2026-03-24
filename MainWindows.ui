@@ -1,0 +1,4217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1377</width>
+    <height>879</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>3D_ROBOT</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">background-color: rgb(230, 230, 230);</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QFrame" name="frame">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>10</y>
+      <width>1361</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QFrame{
+border-radius:10px;
+border:1px solid rgb(100, 100,189)
+} 
+</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLabel" name="label_18">
+     <property name="geometry">
+      <rect>
+       <x>300</x>
+       <y>20</y>
+       <width>781</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>3ds</family>
+       <pointsize>40</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">border:none;
+color:rgb(0, 0, 150);</string>
+     </property>
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:36pt;&quot;&gt;3D 视 觉 智 能 建 造 工 作 站&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label">
+     <property name="geometry">
+      <rect>
+       <x>1110</x>
+       <y>60</y>
+       <width>241</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">border:none;
+color:rgb(0, 0, 150);</string>
+     </property>
+     <property name="text">
+      <string>——湖南比邻星科技有限公司</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frame_2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>110</y>
+      <width>171</width>
+      <height>711</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QFrame{
+border-radius:10px;
+border:1px solid rgb(100, 100,189)
+} 
+</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QPushButton" name="btn_systermRun">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>30</y>
+       <width>141</width>
+       <height>141</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton{
+image: url(:/background/实时监测.png);
+background-color: rgb(0, 0, 150);
+border-radius: 30px; 
+border: 2px groove rgb(255, 85, 0);
+border-style: none;
+color: white;
+}
+QPushButton:hover{
+	border: 4px double rgb(0, 255, 0);
+}
+QPushButton:checked{
+	background-color: rgb(255, 170, 255);
+}
+</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_camSet">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>270</y>
+       <width>141</width>
+       <height>141</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton{
+image: url(:/background/相机.png);
+background-color: rgb(0, 0, 150);
+border-radius: 30px; 
+border: 2px groove rgb(255, 85, 0);
+border-style: none;
+color: white;
+}
+QPushButton:hover{
+	border: 4px double rgb(0, 255, 0);
+}
+QPushButton:checked{
+	background-color: rgb(255, 170, 255);
+}</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_calibrate">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>510</y>
+       <width>141</width>
+       <height>141</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton{
+image: url(:/background/坐标标定.png);
+background-color: rgb(0, 0, 150);
+border-radius: 30px; 
+border: 2px groove rgb(255, 85, 0);
+border-style: none;
+color: white;
+}
+QPushButton:hover{
+	border: 4px double rgb(0, 255, 0);
+}
+QPushButton:checked{
+	background-color: rgb(255, 170, 255);
+}</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_systermRun">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>180</y>
+       <width>101</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>3ds</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">border:none;
+color:rgb(0, 0, 150);</string>
+     </property>
+     <property name="text">
+      <string>系统运行</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_camSet">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>420</y>
+       <width>101</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>3ds</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">border:none;
+color:rgb(0, 0, 150);</string>
+     </property>
+     <property name="text">
+      <string>相机设置</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_calibrate">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>660</y>
+       <width>101</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>3ds</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">border:none;
+color:rgb(0, 0, 150);</string>
+     </property>
+     <property name="text">
+      <string>图像标定</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frame_3">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>110</y>
+      <width>1181</width>
+      <height>711</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QFrame{
+border-radius:10px;
+border:1px solid rgb(100, 100,189)
+} 
+</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>1185</width>
+       <height>711</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>3ds</family>
+       <pointsize>6</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QTabBar::tab{width:0}
+QTabBar::tab{height:1}
+background-color: rgb(230, 230, 230);
+border:none;
+
+
+
+
+</string>
+     </property>
+     <property name="tabPosition">
+      <enum>QTabWidget::North</enum>
+     </property>
+     <property name="tabShape">
+      <enum>QTabWidget::Rounded</enum>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>1</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="elideMode">
+      <enum>Qt::ElideMiddle</enum>
+     </property>
+     <property name="movable">
+      <bool>false</bool>
+     </property>
+     <property name="tabBarAutoHide">
+      <bool>false</bool>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>视觉检测</string>
+      </attribute>
+      <widget class="QTextEdit" name="textEdit_log">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>550</y>
+         <width>831</width>
+         <height>151</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">border-radius:10px;
+border:1px solid gray</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="Image_Show_1">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>831</width>
+         <height>501</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_2">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>510</y>
+         <width>101</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>Arial</family>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>实时信息：</string>
+       </property>
+      </widget>
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="geometry">
+        <rect>
+         <x>840</x>
+         <y>10</y>
+         <width>291</width>
+         <height>181</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QGroupBox {text-align : center;
+             background-color: rgb(230, 230, 230);
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+       </property>
+       <property name="title">
+        <string>末端执行器操作</string>
+       </property>
+       <widget class="QPushButton" name="btn_suction_get">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>90</x>
+          <y>40</y>
+          <width>81</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 24px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :green;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 24px;}</string>
+        </property>
+        <property name="text">
+         <string>取</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="btn_suction_set">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>190</x>
+          <y>40</y>
+          <width>81</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 24px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :green;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 24px;}</string>
+        </property>
+        <property name="text">
+         <string>放</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="btn_bundle_set">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>190</x>
+          <y>110</y>
+          <width>81</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 24px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :green;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 24px;}</string>
+        </property>
+        <property name="text">
+         <string>放</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="btn_bundle_get">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>90</x>
+          <y>110</y>
+          <width>81</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 24px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :green;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 24px;}</string>
+        </property>
+        <property name="text">
+         <string>取</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_3">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>40</y>
+          <width>71</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>Arial</family>
+          <pointsize>14</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>吸盘：</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_12">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>110</y>
+          <width>71</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>Arial</family>
+          <pointsize>14</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>捆扎机：</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QGroupBox" name="groupBox_3">
+       <property name="geometry">
+        <rect>
+         <x>840</x>
+         <y>210</y>
+         <width>301</width>
+         <height>481</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QGroupBox {text-align : center;
+             background-color: rgb(230, 230, 230);
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+       </property>
+       <property name="title">
+        <string>流程示例操作</string>
+       </property>
+       <widget class="QPushButton" name="btn_initialization">
+        <property name="geometry">
+         <rect>
+          <x>40</x>
+          <y>40</y>
+          <width>211</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 24px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :green;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 24px;}</string>
+        </property>
+        <property name="text">
+         <string>初始化</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="btn_porcelain">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>40</x>
+          <y>160</y>
+          <width>211</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 24px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :green;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 24px;}</string>
+        </property>
+        <property name="text">
+         <string>瓷砖贴片启动</string>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>false</bool>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="btn_brick">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>40</x>
+          <y>280</y>
+          <width>211</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 24px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :green;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 24px;}</string>
+        </property>
+        <property name="text">
+         <string>墙砖堆砌启动</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="btn_rebar">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>40</x>
+          <y>400</y>
+          <width>211</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 24px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :green;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 24px;}</string>
+        </property>
+        <property name="text">
+         <string>钢筋捆扎启动</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QLabel" name="Image_Show_2">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>231</width>
+         <height>141</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 0px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>相机参数调节</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QWidget" name="widget" native="true">
+         <widget class="QComboBox" name="ComboDevices">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>571</width>
+            <height>31</height>
+           </rect>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QComboBox {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+          </property>
+         </widget>
+         <widget class="QPushButton" name="bnSaveImage">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="geometry">
+           <rect>
+            <x>980</x>
+            <y>1</y>
+            <width>72</width>
+            <height>30</height>
+           </rect>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color : gray;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 14px;}</string>
+          </property>
+          <property name="text">
+           <string>保存图像</string>
+          </property>
+         </widget>
+         <widget class="QPushButton" name="bnContinueFrame">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="geometry">
+           <rect>
+            <x>831</x>
+            <y>1</y>
+            <width>72</width>
+            <height>30</height>
+           </rect>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :gray;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 14px;}</string>
+          </property>
+          <property name="text">
+           <string>连续采集</string>
+          </property>
+         </widget>
+         <widget class="QPushButton" name="bnOnceFrame">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="geometry">
+           <rect>
+            <x>680</x>
+            <y>1</y>
+            <width>72</width>
+            <height>30</height>
+           </rect>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :gray;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 14px;}</string>
+          </property>
+          <property name="text">
+           <string>单帧采集</string>
+          </property>
+         </widget>
+         <widget class="QGraphicsView" name="graphics_view_2d">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>32</y>
+            <width>575</width>
+            <height>649</height>
+           </rect>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(255, 255, 255);
+
+
+</string>
+          </property>
+         </widget>
+         <widget class="QGraphicsView" name="graphics_view_depth">
+          <property name="geometry">
+           <rect>
+            <x>576</x>
+            <y>32</y>
+            <width>575</width>
+            <height>649</height>
+           </rect>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(255, 255, 255);
+
+
+</string>
+          </property>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>标定</string>
+      </attribute>
+      <widget class="QGroupBox" name="groupBox">
+       <property name="geometry">
+        <rect>
+         <x>900</x>
+         <y>0</y>
+         <width>281</width>
+         <height>701</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QGroupBox {text-align : center;
+             background-color: rgb(230, 230, 230);
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+       </property>
+       <property name="title">
+        <string>机器人控制</string>
+       </property>
+       <widget class="QPushButton" name="btn_clip_close_6">
+        <property name="geometry">
+         <rect>
+          <x>356</x>
+          <y>660</y>
+          <width>51</width>
+          <height>30</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     font: bold;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     font : 14px;}
+</string>
+        </property>
+        <property name="text">
+         <string>退回</string>
+        </property>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>11</x>
+          <y>22</y>
+          <width>58</width>
+          <height>161</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_8">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_14">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>9</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>控制器：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_19">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>9</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>机器人：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_21">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>9</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>机器人：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_15">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>9</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>点  位：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_16">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>9</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>模  式：</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>80</x>
+          <y>21</y>
+          <width>91</width>
+          <height>176</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_7">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btn_controller_power_on">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : green;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     ;}
+</string>
+           </property>
+           <property name="text">
+            <string>开机</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btn_robot_power_on">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : green;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>上电</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QPushButton" name="btn_disable_robot">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : green;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>下使能</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QPushButton" name="btn_home">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : green;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>Home</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QPushButton" name="btn_joint">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>角度控制</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>180</x>
+          <y>21</y>
+          <width>91</width>
+          <height>176</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_9">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btn_controller_power_off">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : green;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>关机</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btn_enable_robot">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : green;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>上使能</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QPushButton" name="btn_robot_power_off">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : green;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>下电</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QPushButton" name="btn_play">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : green;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>拍照点</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QPushButton" name="btn_xyz">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>坐标控制</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>480</y>
+          <width>261</width>
+          <height>212</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_13">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>扎丝机：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_22">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>快 换：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_23">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>吸 盘：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_32">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>滑 轨：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="3">
+          <widget class="QPushButton" name="btn_servor_right">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>向右</string>
+           </property>
+           <property name="autoRepeat">
+            <bool>true</bool>
+           </property>
+           <property name="autoRepeatInterval">
+            <number>20</number>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_29">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>滑 轨：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1" colspan="2">
+          <widget class="QLineEdit" name="lineEdit_absolute_speed">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="dragEnabled">
+            <bool>false</bool>
+           </property>
+           <property name="placeholderText">
+            <string>绝对速度</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="3">
+          <widget class="QLineEdit" name="lineEdit_absolute_loaction">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="placeholderText">
+            <string>绝对位置</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_30">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>滑 轨：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="3">
+          <widget class="QPushButton" name="btn_servor_reset">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>回原点</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" colspan="2">
+          <widget class="QPushButton" name="btn_servor_left">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>向左</string>
+           </property>
+           <property name="autoRepeat">
+            <bool>true</bool>
+           </property>
+           <property name="autoRepeatDelay">
+            <number>300</number>
+           </property>
+           <property name="autoRepeatInterval">
+            <number>20</number>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QPushButton" name="btn_xipan_close">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>关闭</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1" colspan="2">
+          <widget class="QPushButton" name="btn_xipan_open">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>打开</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QPushButton" name="btn_kh_close">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>吸合</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QPushButton" name="btn_zsj_close">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>关闭</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1" colspan="2">
+          <widget class="QPushButton" name="btn_zsj_open">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>打开</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QPushButton" name="btn_kh_open">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>松开</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1" colspan="2">
+          <widget class="QPushButton" name="btn_servor_run">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>启动</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>12</x>
+          <y>183</y>
+          <width>261</width>
+          <height>221</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="lab1">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>关节1：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="btn_j1_add">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             ;}
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J1+</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QPushButton" name="btn_j1_subtract">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                    }
+</string>
+           </property>
+           <property name="text">
+            <string>J1-</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLabel" name="label_j1">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="lab2">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>关节2：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btn_j2_add">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             ;}
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J2+</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QPushButton" name="btn_j2_subtract">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J2-</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QLabel" name="label_j2">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+			}</string>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="lab3">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>关节3：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QPushButton" name="btn_j3_add">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J3+</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QPushButton" name="btn_j3_subtract">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J3-</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QLabel" name="label_j3">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="lab4">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>关节4：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QPushButton" name="btn_j4_add">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J4+</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QPushButton" name="btn_j4_subtract">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J4-</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="3">
+          <widget class="QLabel" name="label_j4">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="lab5">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>关节5：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QPushButton" name="btn_j5_add">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J5+</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QPushButton" name="btn_j5_subtract">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J5-</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="3">
+          <widget class="QLabel" name="label_j5">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="lab6">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>关节6：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QPushButton" name="btn_j6_add">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;}
+
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J6+</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="2">
+          <widget class="QPushButton" name="btn_j6_subtract">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>J6-</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="3">
+          <widget class="QLabel" name="label_j6">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QLineEdit" name="lineEdit_speed">
+        <property name="geometry">
+         <rect>
+          <x>211</x>
+          <y>447</y>
+          <width>60</width>
+          <height>30</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>宋体</family>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+        </property>
+        <property name="text">
+         <string>90</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="lineEdit_step">
+        <property name="geometry">
+         <rect>
+          <x>211</x>
+          <y>410</y>
+          <width>60</width>
+          <height>30</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>宋体</family>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }</string>
+        </property>
+        <property name="text">
+         <string>5</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>410</y>
+          <width>201</width>
+          <height>68</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_10">
+         <item row="0" column="0" rowspan="2">
+          <layout class="QGridLayout" name="gridLayout_6">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_step">
+             <property name="font">
+              <font>
+               <family>宋体</family>
+               <pointsize>10</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>步 长：</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_speed">
+             <property name="font">
+              <font>
+               <family>宋体</family>
+               <pointsize>10</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>速 度：</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="btn_step_add">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>+</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QPushButton" name="btn_step_subtract">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>-</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btn_speed_min">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>90</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QPushButton" name="btn_speed_max">
+           <property name="font">
+            <font>
+             <family>宋体</family>
+             <pointsize>8</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {text-align : center;
+             background-color : rgb(216, 216, 216);
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             }
+QPushButton:pressed
+					{text-align : center;
+                     background-color : light gray;
+                     border-color: gray;
+                     border-width: 2px;
+                     padding: 6px;
+                     height : 14px;
+                     border-style: outset;
+                     }
+</string>
+           </property>
+           <property name="text">
+            <string>180</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QGroupBox" name="groupBox_11">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>510</y>
+         <width>891</width>
+         <height>191</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QGroupBox {text-align : center;
+             background-color: rgb(230, 230, 230);
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+</string>
+       </property>
+       <property name="title">
+        <string>标定</string>
+       </property>
+       <widget class="QLabel" name="label_4">
+        <property name="geometry">
+         <rect>
+          <x>90</x>
+          <y>10</y>
+          <width>81</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">border:none;</string>
+        </property>
+        <property name="text">
+         <string>图像坐标：</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_24">
+        <property name="geometry">
+         <rect>
+          <x>390</x>
+          <y>10</y>
+          <width>101</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">border:none;</string>
+        </property>
+        <property name="text">
+         <string>机械臂坐标：</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_27">
+        <property name="geometry">
+         <rect>
+          <x>730</x>
+          <y>10</y>
+          <width>91</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>3ds</family>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">border:none;</string>
+        </property>
+        <property name="text">
+         <string>标定误差：</string>
+        </property>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>40</y>
+          <width>609</width>
+          <height>143</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_5">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>P_X_1：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="lineEdit_P_x_1">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_9">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>P_Y_1：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLineEdit" name="lineEdit_P_y_1">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="4">
+          <widget class="QLabel" name="lab_R_X_1">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>R_X_1：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="5">
+          <widget class="QLineEdit" name="lineEdit_R_x_1">
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="6">
+          <widget class="QLabel" name="lab_R_Y_1">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>R_Y_1：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="7">
+          <widget class="QLineEdit" name="lineEdit_R_y_1">
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_6">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>P_X_2：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="lineEdit_P_x_2">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="label_10">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>P_Y_2：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QLineEdit" name="lineEdit_P_y_2">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="4">
+          <widget class="QLabel" name="lab_R_X_2">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>R_X_2：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="5">
+          <widget class="QLineEdit" name="lineEdit_R_x_2">
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="6">
+          <widget class="QLabel" name="lab_R_Y_2">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>R_Y_2：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="7">
+          <widget class="QLineEdit" name="lineEdit_R_y_2">
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_7">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>P_X_3：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLineEdit" name="lineEdit_P_x_3">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLabel" name="label_11">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>P_Y_3：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QLineEdit" name="lineEdit_P_y_3">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="4">
+          <widget class="QLabel" name="lab_R_X_3">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>R_X_3：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="5">
+          <widget class="QLineEdit" name="lineEdit_R_x_3">
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="6">
+          <widget class="QLabel" name="lab_R_Y_3">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>R_Y_3：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="7">
+          <widget class="QLineEdit" name="lineEdit_R_y_3">
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_8">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>P_X_4：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="lineEdit_P_x_4">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QLabel" name="label_17">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>P_Y_4：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="3">
+          <widget class="QLineEdit" name="lineEdit_P_y_4">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="4">
+          <widget class="QLabel" name="lab_R_X_4">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>R_X_4：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="5">
+          <widget class="QLineEdit" name="lineEdit_R_x_4">
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="6">
+          <widget class="QLabel" name="lab_R_Y_4">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>R_Y_4：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="7">
+          <widget class="QLineEdit" name="lineEdit_R_y_4">
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">  QLineEdit {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>610</x>
+          <y>90</y>
+          <width>271</width>
+          <height>91</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btn_trigger_biaoding">
+           <property name="styleSheet">
+            <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color : gray;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 14px;}</string>
+           </property>
+           <property name="text">
+            <string>触发采集</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="bnSaveImage_biaoding">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color : gray;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 14px;}</string>
+           </property>
+           <property name="text">
+            <string>保存图像</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btn_biaoding_star">
+           <property name="styleSheet">
+            <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :gray;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 14px;}</string>
+           </property>
+           <property name="text">
+            <string>开始标定</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btn_biaoding_save">
+           <property name="styleSheet">
+            <string notr="true">QPushButton 
+  			{text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             border-radius: 10px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}
+QPushButton:pressed
+             {text-align : center;
+              background-color :gray;
+              font: bold;
+              border-color: gray;
+              border-width: 2px;
+              border-radius: 10px;
+              padding: 6px;
+              height : 14px;
+              border-style: outset;
+              font : 14px;}</string>
+           </property>
+           <property name="text">
+            <string>保存结果</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>610</x>
+          <y>40</y>
+          <width>271</width>
+          <height>35</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_28">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Ero_X：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="label_Ero_x">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_31">
+           <property name="font">
+            <font>
+             <family>3ds</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Ero_Y：</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLabel" name="label_Ero_y">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="font">
+            <font>
+             <family>Times New Roman</family>
+             <pointsize>-1</pointsize>
+             <weight>50</weight>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {text-align : center;
+             background-color : white;
+             font: bold;
+             border-color: gray;
+             border-width: 2px;
+             padding: 6px;
+             height : 14px;
+             border-style: outset;
+             font : 14px;}</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QGraphicsView" name="graphics_view_biaoding">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>891</width>
+         <height>511</height>
+        </rect>
+       </property>
+       <property name="cursor" stdset="0">
+        <cursorShape>CrossCursor</cursorShape>
+       </property>
+       <property name="mouseTracking">
+        <bool>true</bool>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(255, 255, 255);</string>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QLabel" name="label_20">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>830</y>
+      <width>171</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>3ds</family>
+      <pointsize>9</pointsize>
+     </font>
+    </property>
+    <property name="layoutDirection">
+     <enum>Qt::LeftToRight</enum>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+border-radius:10px;
+border:1px solid rgb(100, 100,189)</string>
+    </property>
+    <property name="text">
+     <string>系 统 状 态 显 示：</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QSplitter" name="splitter">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>830</y>
+      <width>851</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+    <widget class="QLabel" name="label_jaka">
+     <property name="font">
+      <font>
+       <family>3ds</family>
+       <pointsize>9</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>机器人连接状态</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_mech">
+     <property name="font">
+      <font>
+       <family>3ds</family>
+       <pointsize>9</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Mech3D相机连接状态</string>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1377</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources>
+  <include location="Resources/pictures.qrc"/>
+ </resources>
+ <connections/>
+</ui>
