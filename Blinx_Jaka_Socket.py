@@ -25,7 +25,7 @@ class Blinx_Jaka_Socket():
                 self.socket_jaka.connect((str(self.public_class.jaka_ip), int(self.public_class.jaka_port)))
                 self.BUF_SIZE = 10000
                 # 开线程，防止堵塞
-                self.jaka_t = threading.Thread(target=self.blinx_jaka_msg)
+                self.jaka_t = threading.Thread(target=self.blinx_jaka_msg, daemon=True)
                 self.jaka_t.start()
                 self.jaka_connect_sucess = True
                 self.blinx_get_robot_state()#获取机器人状态

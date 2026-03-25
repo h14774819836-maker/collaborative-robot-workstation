@@ -112,6 +112,24 @@ class YOLOv8Seg:
                                                   nm=nm)
         return boxes, segments, masks
 
+    @staticmethod
+    def build_instance_records(bboxes, segments, masks):
+        instances = []
+        if len(bboxes) == 0:
+            return instances
+
+        for bbox, segment, mask in zip(bboxes, segments, masks):
+            instances.append(
+                {
+                    "bbox": np.asarray(bbox[:4], dtype=np.float32),
+                    "score": float(bbox[4]),
+                    "class_id": int(bbox[5]),
+                    "segment": np.asarray(segment, dtype=np.float32),
+                    "mask": np.asarray(mask, dtype=np.uint8),
+                }
+            )
+        return instances
+
     def preprocess(self, img):
         """
         Pre-processes the input image.

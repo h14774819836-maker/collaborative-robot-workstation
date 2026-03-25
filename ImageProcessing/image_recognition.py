@@ -1,322 +1,532 @@
-import argparse
-from ImageProcessing.yolov8_onnx import *
-from ImageProcessing.yolov8_onnx_seg import *
-from ImageProcessing.yolov8_onnx2 import *
+import math
+from typing import Dict, List, Optional
 
-class Blinx_image_rec():
+import cv2
+import numpy as np
+
+from ImageProcessing.yolov8_onnx import YOLOv8
+from ImageProcessing.yolov8_onnx_seg import YOLOv8Seg
+from ImageProcessing.yolov8_onnx2 import YOLOv82
+
+
+def normalize_angle_90(angle_deg: float) -> float:
+    return ((float(angle_deg) + 90.0) % 180.0) - 90.0
+
+
+def resolve_shortest_rotation_delta(previous_angle: Optional[float], angle_deg: float) -> float:
+    if previous_angle is None:
+        return float(angle_deg)
+
+    candidates = [float(angle_deg), float(angle_deg) + 180.0, float(angle_deg) - 180.0]
+    return min(candidates, key=lambda candidate: abs(candidate - float(previous_angle)))
+
+
+def calculate_rectangle_angle(corners) -> float:
+    if len(corners) != 4:
+        raise ValueError("four corner points are required")
+
+    corners = np.asarray(corners, dtype=np.float32)
+    edges = []
+    for i in range(4):
+        p1 = corners[i]
+        p2 = corners[(i + 1) % 4]
+        edge_length = np.sqrt(np.sum((p1 - p2) ** 2))
+        edges.append((edge_length, (p1, p2)))
+
+    edges.sort(key=lambda item: item[0], reverse=True)
+    longest_edge = edges[0][1]
+    p1, p2 = longest_edge
+    vector = p2 - p1
+    angle_rad = np.arctan2(vector[1], vector[0])
+    angle_deg = np.degrees(angle_rad)
+    return normalize_angle_90(angle_deg)
+
+
+def prepare_mask(mask: np.ndarray, erode_kernel: int, erode_iterations: int) -> np.ndarray:
+    mask_bool = np.asarray(mask > 0, dtype=bool)
+    if not np.any(mask_bool):
+        return mask_bool
+
+    erode_kernel = max(int(erode_kernel), 1)
+    erode_iterations = max(int(erode_iterations), 0)
+    if erode_kernel <= 1 or erode_iterations == 0:
+        return mask_bool
+
+    kernel = np.ones((erode_kernel, erode_kernel), dtype=np.uint8)
+    eroded = cv2.erode(mask_bool.astype(np.uint8), kernel, iterations=erode_iterations)
+    return eroded.astype(bool)
+
+
+def _mask_centroid(mask: np.ndarray) -> Optional[tuple]:
+    ys, xs = np.where(mask > 0)
+    if xs.size == 0:
+        return None
+    return int(np.round(xs.mean())), int(np.round(ys.mean()))
+
+
+def _build_depth_stat_result(
+    original_mask: np.ndarray,
+    working_mask: np.ndarray,
+    depth_map: np.ndarray,
+    cfg: Dict[str, float],
+) -> Dict[str, object]:
+    total_foreground = int(np.count_nonzero(original_mask))
+    ys, xs = np.where(working_mask > 0)
+    if xs.size == 0 or total_foreground == 0:
+        centroid = _mask_centroid(original_mask)
+        return {
+            "depth_mm": None,
+            "pixel_x": centroid[0] if centroid else None,
+            "pixel_y": centroid[1] if centroid else None,
+            "valid_depth_count": 0,
+            "valid_depth_ratio": 0.0,
+            "inlier_mask": np.zeros_like(original_mask, dtype=bool),
+            "rejected_mask": original_mask.astype(bool),
+            "is_valid": False,
+        }
+
+    depth_values = depth_map[ys, xs].astype(np.float32)
+    finite_mask = np.isfinite(depth_values) & (depth_values > float(cfg["depth_min_valid_mm"]))
+    valid_depth_values = depth_values[finite_mask]
+    valid_xs = xs[finite_mask]
+    valid_ys = ys[finite_mask]
+
+    inlier_mask = np.zeros_like(original_mask, dtype=bool)
+    rejected_mask = original_mask.astype(bool)
+    if valid_depth_values.size == 0:
+        centroid = _mask_centroid(original_mask)
+        return {
+            "depth_mm": None,
+            "pixel_x": centroid[0] if centroid else None,
+            "pixel_y": centroid[1] if centroid else None,
+            "valid_depth_count": 0,
+            "valid_depth_ratio": 0.0,
+            "inlier_mask": inlier_mask,
+            "rejected_mask": rejected_mask,
+            "is_valid": False,
+        }
+
+    trim_percent = max(0.0, min(float(cfg["depth_trim_percent"]), 49.0))
+    if trim_percent > 0.0 and valid_depth_values.size > 2:
+        low = np.percentile(valid_depth_values, trim_percent)
+        high = np.percentile(valid_depth_values, 100.0 - trim_percent)
+        trimmed_mask = (valid_depth_values >= low) & (valid_depth_values <= high)
+    else:
+        trimmed_mask = np.ones_like(valid_depth_values, dtype=bool)
+
+    inlier_depth_values = valid_depth_values[trimmed_mask]
+    inlier_xs = valid_xs[trimmed_mask]
+    inlier_ys = valid_ys[trimmed_mask]
+    if inlier_depth_values.size > 0:
+        inlier_mask[inlier_ys, inlier_xs] = True
+        rejected_mask[inlier_ys, inlier_xs] = False
+
+    valid_depth_count = int(inlier_depth_values.size)
+    valid_depth_ratio = valid_depth_count / float(max(total_foreground, 1))
+    centroid = _mask_centroid(original_mask)
+    if valid_depth_count > 0:
+        pixel_x = int(np.round(inlier_xs.mean()))
+        pixel_y = int(np.round(inlier_ys.mean()))
+        depth_mm = float(np.median(inlier_depth_values))
+    else:
+        pixel_x = centroid[0] if centroid else None
+        pixel_y = centroid[1] if centroid else None
+        depth_mm = None
+
+    is_valid = (
+        depth_mm is not None
+        and valid_depth_count >= int(cfg["depth_min_valid_pixels"])
+        and valid_depth_ratio >= float(cfg["depth_min_valid_ratio"])
+    )
+    return {
+        "depth_mm": depth_mm,
+        "pixel_x": pixel_x,
+        "pixel_y": pixel_y,
+        "valid_depth_count": valid_depth_count,
+        "valid_depth_ratio": valid_depth_ratio,
+        "inlier_mask": inlier_mask,
+        "rejected_mask": rejected_mask,
+        "is_valid": is_valid,
+    }
+
+
+def extract_depth_stats(mask: np.ndarray, depth_map: np.ndarray, cfg: Dict[str, float]) -> Dict[str, object]:
+    original_mask = np.asarray(mask > 0, dtype=bool)
+    if depth_map is None:
+        centroid = _mask_centroid(original_mask)
+        return {
+            "depth_mm": None,
+            "pixel_x": centroid[0] if centroid else None,
+            "pixel_y": centroid[1] if centroid else None,
+            "valid_depth_count": 0,
+            "valid_depth_ratio": 0.0,
+            "inlier_mask": np.zeros_like(original_mask, dtype=bool),
+            "rejected_mask": original_mask.astype(bool),
+            "is_valid": False,
+        }
+
+    eroded_mask = prepare_mask(
+        original_mask,
+        cfg["depth_erode_kernel"],
+        cfg["depth_erode_iterations"],
+    )
+    stats = _build_depth_stat_result(original_mask, eroded_mask, depth_map, cfg)
+    if stats["valid_depth_count"] < int(cfg["depth_min_valid_pixels"]) and np.any(eroded_mask != original_mask):
+        stats = _build_depth_stat_result(original_mask, original_mask, depth_map, cfg)
+    return stats
+
+
+def _compute_min_area_rect_angle(mask: np.ndarray) -> float:
+    ys, xs = np.where(mask > 0)
+    if xs.size < 2:
+        return 0.0
+    points = np.column_stack((xs, ys)).astype(np.float32)
+    rect = cv2.minAreaRect(points)
+    box = cv2.boxPoints(rect)
+    return calculate_rectangle_angle(box)
+
+
+def compute_pca_angle(mask: np.ndarray, cfg: Dict[str, float]) -> Dict[str, object]:
+    ys, xs = np.where(mask > 0)
+    if xs.size < 2:
+        fallback_angle = _compute_min_area_rect_angle(mask)
+        return {
+            "angle_deg": fallback_angle,
+            "raw_pca_angle_deg": fallback_angle,
+            "axis_ratio": 0.0,
+            "angle_fallback": True,
+        }
+
+    points = np.column_stack((xs, ys)).astype(np.float32)
+    mean, eigenvectors, eigenvalues = cv2.PCACompute2(points, mean=np.empty((0)))
+    del mean
+    raw_angle_deg = normalize_angle_90(np.degrees(np.arctan2(eigenvectors[0, 1], eigenvectors[0, 0])))
+
+    if len(eigenvalues) >= 2:
+        axis_ratio = float(eigenvalues[0, 0] / max(eigenvalues[1, 0], 1e-6))
+    else:
+        axis_ratio = float("inf")
+
+    if not np.isfinite(axis_ratio) or axis_ratio < float(cfg["pca_min_axis_ratio"]):
+        fallback_angle = _compute_min_area_rect_angle(mask)
+        return {
+            "angle_deg": fallback_angle,
+            "raw_pca_angle_deg": raw_angle_deg,
+            "axis_ratio": axis_ratio,
+            "angle_fallback": True,
+        }
+
+    return {
+        "angle_deg": raw_angle_deg,
+        "raw_pca_angle_deg": raw_angle_deg,
+        "axis_ratio": axis_ratio,
+        "angle_fallback": False,
+    }
+
+
+def rank_candidates(candidates: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    return sorted(
+        candidates,
+        key=lambda item: (
+            not item["is_valid"],
+            item["depth_mm"] if item["depth_mm"] is not None else float("inf"),
+            -float(item["score"]),
+        ),
+    )
+
+
+def _apply_mask_overlay(image: np.ndarray, mask: np.ndarray, color: tuple, alpha: float) -> np.ndarray:
+    if not np.any(mask):
+        return image
+    overlay = image.copy()
+    overlay[mask] = color
+    return cv2.addWeighted(overlay, alpha, image, 1.0 - alpha, 0.0)
+
+
+def _draw_text_lines(image: np.ndarray, lines: List[str]) -> np.ndarray:
+    for index, line in enumerate(lines):
+        origin = (12, 24 + index * 22)
+        cv2.putText(image, line, origin, cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 0), 3, cv2.LINE_AA)
+        cv2.putText(image, line, origin, cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
+    return image
+
+
+def render_debug_overlays(
+    image: np.ndarray,
+    depth_map: np.ndarray,
+    candidate: Optional[Dict[str, object]],
+    vision_debug: bool,
+) -> tuple:
+    rgb_debug = image.copy()
+
+    if depth_map is None:
+        depth_rgb = np.zeros_like(image)
+    else:
+        depth_view = np.nan_to_num(depth_map, nan=0.0, posinf=0.0, neginf=0.0)
+        depth_8bit = cv2.normalize(depth_view, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+        depth_bgr = cv2.applyColorMap(depth_8bit, cv2.COLORMAP_JET)
+        depth_rgb = cv2.cvtColor(depth_bgr, cv2.COLOR_BGR2RGB)
+
+    if candidate is None:
+        return rgb_debug, depth_rgb
+
+    inlier_mask = candidate["inlier_mask"]
+    rejected_mask = candidate["rejected_mask"]
+    if vision_debug:
+        rgb_debug = _apply_mask_overlay(rgb_debug, rejected_mask, (0, 0, 255), 0.30)
+        rgb_debug = _apply_mask_overlay(rgb_debug, inlier_mask, (0, 255, 0), 0.30)
+        depth_rgb = _apply_mask_overlay(depth_rgb, rejected_mask, (255, 0, 0), 0.30)
+        depth_rgb = _apply_mask_overlay(depth_rgb, inlier_mask, (0, 255, 0), 0.30)
+
+    if candidate["pixel_x"] is not None and candidate["pixel_y"] is not None:
+        center = (int(candidate["pixel_x"]), int(candidate["pixel_y"]))
+        cv2.circle(rgb_debug, center, 5, (0, 255, 255), -1)
+        cv2.circle(depth_rgb, center, 5, (255, 255, 255), -1)
+
+        line_length = max(40, int(math.sqrt(max(candidate["mask_foreground_count"], 1))))
+        angle_rad = math.radians(float(candidate["angle_deg"]))
+        end_point = (
+            int(round(center[0] + math.cos(angle_rad) * line_length)),
+            int(round(center[1] + math.sin(angle_rad) * line_length)),
+        )
+        cv2.line(rgb_debug, center, end_point, (0, 0, 255), 2)
+        cv2.line(depth_rgb, center, end_point, (255, 255, 255), 2)
+
+    text_lines = [
+        (
+            f"Xpx {candidate['pixel_x']} Ypx {candidate['pixel_y']} "
+            f"Zmm {candidate['depth_mm']:.1f}"
+            if candidate["depth_mm"] is not None
+            else f"Xpx {candidate['pixel_x']} Ypx {candidate['pixel_y']} Zmm None"
+        ),
+        (
+            f"Angle {candidate['angle_deg']:.2f} "
+            f"RawPCA {candidate['raw_pca_angle_deg']:.2f} "
+            f"Score {candidate['score']:.3f}"
+        ),
+        (
+            f"ValidN {candidate['valid_depth_count']} "
+            f"ValidR {candidate['valid_depth_ratio']:.3f}"
+        ),
+    ]
+    if candidate["angle_fallback"]:
+        text_lines.append("ANGLE_FALLBACK")
+
+    rgb_debug = _draw_text_lines(rgb_debug, text_lines)
+    depth_rgb = _draw_text_lines(depth_rgb, text_lines)
+    return rgb_debug, depth_rgb
+
+
+class Blinx_image_rec:
     def __init__(self, public_class):
         self.public_class = public_class
 
-        # 目标检测
         self.model_path = "ImageProcessing/gangjin2-m.onnx"
-        # 加载模型
         self.detection = YOLOv8(self.model_path)
-        # 模型初始化
         self.session, self.model_inputs = self.detection.init_detect_model()
-        # 目标检测
+
         self.model_path1 = "ImageProcessing/hongzhuan-detect.onnx"
-        # 加载模型
         self.detection1 = YOLOv82(self.model_path1)
-        # 模型初始化
         self.session1, self.model_inputs1 = self.detection1.init_detect_model()
 
-
-
-        # 实例分割
-        # 模型路径
         self.model_path2 = "ImageProcessing/hongzhuan-seg2.onnx"
-        # 实例化模型
         self.model2 = YOLOv8Seg(self.model_path2)
-        # 置信度
         self.conf = 0.65
         self.iou = 0.45
+        self.rgbd_cfg = {
+            "depth_min_valid_mm": float(getattr(self.public_class, "depth_min_valid_mm", 10.0)),
+            "depth_trim_percent": float(getattr(self.public_class, "depth_trim_percent", 5.0)),
+            "depth_min_valid_pixels": int(getattr(self.public_class, "depth_min_valid_pixels", 200)),
+            "depth_min_valid_ratio": float(getattr(self.public_class, "depth_min_valid_ratio", 0.2)),
+            "depth_erode_kernel": int(getattr(self.public_class, "depth_erode_kernel", 3)),
+            "depth_erode_iterations": int(getattr(self.public_class, "depth_erode_iterations", 1)),
+            "pca_min_axis_ratio": float(getattr(self.public_class, "pca_min_axis_ratio", 1.10)),
+            "vision_debug": bool(int(getattr(self.public_class, "vision_debug", 1))),
+        }
 
-
-    # 钢筋图像识别
     def blinx_rebar_image_rec(self, image):
         output_image, result_list = self.detection.detect(self.session, self.model_inputs, image)
         print(result_list)
         data = []
-        for i in range(len(result_list)):
-            res = []
-            res.append(result_list[i][2])
-            res.append(result_list[i][3])
-            data.append(res)
-        
+        for result in result_list:
+            data.append([result[2], result[3]])
         return output_image, data
 
-    # 瓷砖与墙砖二次识别
     def blinx_brickandporcelain_image_rec(self, image):
         output_image, result_list = self.detection1.detect(self.session1, self.model_inputs1, image)
         print(result_list)
-        data = []
-        data.append(result_list[0][2])
-        data.append(result_list[0][3])
+        if not result_list:
+            return output_image, None
+        data = [result_list[0][2], result_list[0][3]]
         return output_image, data
 
-    # 砖块图像识别
-    def blinx_brick_image_rec(self, image, mech_depth_map):
-        # 推理
-        boxes, segments, _ = self.model2(image, conf_threshold=self.conf, iou_threshold=self.iou)
-        # 画图
-        if len(boxes) > 0:
-            # 单次拍照同种类别只有一个
-            # output_image, dict_label_seg = model.draw_and_visualize(img, boxes, segments, vis=False, save=True)
-            # print(dict_label_seg)
-            # 单次拍照同种类别存在多个
-            output_image, data_list, vertices_list = self.model2.draw_and_visualize_seg(
-                image, boxes, segments, vis=False, save=True)
-            print(data_list)
-            data = []
-            data.append(data_list[0][1][0])
-            data.append(data_list[0][1][1])
-            depth_num = mech_depth_map[int(data_list[0][1][1]), int(data_list[0][1][0])]
-            data.append(depth_num)
-            data.append(data_list[0][2])
-            return output_image, data
-        else:
-            return image, None
+    def _run_rgbd_segmentation(self, image, mech_depth_map):
+        boxes, segments, masks = self.model2(image, conf_threshold=self.conf, iou_threshold=self.iou)
+        if len(boxes) == 0:
+            rgb_debug, depth_debug = render_debug_overlays(
+                image,
+                mech_depth_map,
+                None,
+                self.rgbd_cfg["vision_debug"],
+            )
+            return rgb_debug, depth_debug, None
 
-    # 瓷砖二次识别
+        candidates = []
+        instances = self.model2.build_instance_records(boxes, segments, masks)
+        for instance in instances:
+            mask = instance["mask"].astype(bool)
+            depth_stats = extract_depth_stats(mask, mech_depth_map, self.rgbd_cfg)
+            angle_stats = compute_pca_angle(mask, self.rgbd_cfg)
+            candidate = {
+                "class_id": instance["class_id"],
+                "score": instance["score"],
+                "bbox": instance["bbox"],
+                "segment": instance["segment"],
+                "mask": mask,
+                "mask_foreground_count": int(mask.sum()),
+                "pixel_x": depth_stats["pixel_x"],
+                "pixel_y": depth_stats["pixel_y"],
+                "depth_mm": depth_stats["depth_mm"],
+                "angle_deg": angle_stats["angle_deg"],
+                "raw_pca_angle_deg": angle_stats["raw_pca_angle_deg"],
+                "valid_depth_count": depth_stats["valid_depth_count"],
+                "valid_depth_ratio": depth_stats["valid_depth_ratio"],
+                "inlier_mask": depth_stats["inlier_mask"],
+                "rejected_mask": depth_stats["rejected_mask"],
+                "angle_fallback": angle_stats["angle_fallback"],
+                "axis_ratio": angle_stats["axis_ratio"],
+                "is_valid": depth_stats["is_valid"],
+            }
+            candidates.append(candidate)
+
+        ranked_candidates = rank_candidates(candidates)
+        selected_candidate = next((item for item in ranked_candidates if item["is_valid"]), None)
+        debug_candidate = selected_candidate or (ranked_candidates[0] if ranked_candidates else None)
+        rgb_debug, depth_debug = render_debug_overlays(
+            image,
+            mech_depth_map,
+            debug_candidate,
+            self.rgbd_cfg["vision_debug"],
+        )
+        return rgb_debug, depth_debug, selected_candidate
+
+    def blinx_brick_image_rec(self, image, mech_depth_map):
+        return self._run_rgbd_segmentation(image, mech_depth_map)
+
+    def blinx_brick_image_rec2(self, image, mech_depth_map):
+        return self._run_rgbd_segmentation(image, mech_depth_map)
+
     def blinx_image_gain(self, img):
         try:
-            # 保存原始图像引用
             orig_img = img.copy()
-
-            # 缩放处理
             scale_percent = 25
             width = int(img.shape[1] * scale_percent / 100)
             height = int(img.shape[0] * scale_percent / 100)
-            dim = (width, height)
-            resized = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+            resized = cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
-            # 图像预处理
             gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
             blur = cv2.GaussianBlur(gray, (5, 5), 0)
             edges = cv2.Canny(blur, 50, 150)
-
-            # 轮廓检测
             contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            # 存储矩形信息：中心点、角度、轮廓
             rectangles_info = []
+            for contour in contours:
+                peri = cv2.arcLength(contour, True)
+                approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
+                if len(approx) != 4:
+                    continue
 
-            for cnt in contours:
-                # 轮廓近似
-                peri = cv2.arcLength(cnt, True)
-                approx = cv2.approxPolyDP(cnt, 0.02 * peri, True)
+                area = cv2.contourArea(approx)
+                if area < 100 or area > (width * height * 0.5):
+                    continue
+                if not cv2.isContourConvex(approx):
+                    continue
 
-                # 四边形筛选
-                if len(approx) == 4:
-                    # 计算面积
-                    area = cv2.contourArea(approx)
+                rect = cv2.minAreaRect(approx)
+                (cx, cy), (box_w, box_h), angle = rect
+                aspect_ratio = max(box_w, box_h) / (min(box_w, box_h) + 1e-5)
+                if not (0.7 < aspect_ratio < 1.4 and area > 1000):
+                    continue
 
-                    # 排除太小或太大的轮廓
-                    if area < 100 or area > (width * height * 0.5):
-                        continue
+                scale_factor = 100 / scale_percent
+                cx_orig = int(cx * scale_factor)
+                cy_orig = int(cy * scale_factor)
+                box = cv2.boxPoints(((cx_orig, cy_orig), (box_w * scale_factor, box_h * scale_factor), angle))
+                box = np.intp(box)
+                rectangles_info.append(
+                    {
+                        "center": (cx_orig, cy_orig),
+                        "angle": angle,
+                        "contour": box,
+                        "size": (int(box_w * scale_factor), int(box_h * scale_factor)),
+                    }
+                )
 
-                    # 计算凸性，确保是凸四边形
-                    if not cv2.isContourConvex(approx):
-                        continue
-
-                    # 计算最小外接矩形
-                    rect = cv2.minAreaRect(approx)
-                    (cx, cy), (w, h), angle = rect
-
-                    # 计算宽高比
-                    aspect_ratio = max(w, h) / (min(w, h) + 1e-5)
-
-                    # 几何特征验证
-                    if 0.7 < aspect_ratio < 1.4 and area > 1000:
-                        # 还原原始坐标
-                        scale_factor = 100 / scale_percent
-                        cx_orig = int(cx * scale_factor)
-                        cy_orig = int(cy * scale_factor)
-                        angle_orig = angle
-
-                        # 获取旋转矩形的四个顶点（原始尺寸）
-                        box = cv2.boxPoints(((cx_orig, cy_orig), (w * scale_factor, h * scale_factor), angle_orig))
-                        box = np.int0(box)
-
-                        # 存储矩形信息
-                        rectangles_info.append({
-                            'center': (cx_orig, cy_orig),
-                            'angle': angle_orig,
-                            'contour': box,
-                            'size': (int(w * scale_factor), int(h * scale_factor))
-                        })
-
-            # 绘制结果
             for info in rectangles_info:
-                # 绘制旋转矩形
-                cv2.drawContours(orig_img, [info['contour']], 0, (0, 255, 0), 2)
+                cv2.drawContours(orig_img, [info["contour"]], 0, (0, 255, 0), 2)
+                cv2.circle(orig_img, info["center"], 5, (0, 0, 255), -1)
+                angle_rad = math.radians(info["angle"])
+                end_x = int(info["center"][0] + 50 * math.cos(angle_rad))
+                end_y = int(info["center"][1] + 50 * math.sin(angle_rad))
+                cv2.line(orig_img, info["center"], (end_x, end_y), (255, 0, 0), 2)
+                cv2.putText(
+                    orig_img,
+                    f"Angle: {info['angle']:.1f}",
+                    (info["center"][0] + 10, info["center"][1] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 0),
+                    1,
+                )
 
-                # 绘制中心点
-                cv2.circle(orig_img, info['center'], 5, (0, 0, 255), -1)
+            if not rectangles_info:
+                return orig_img, None, None, None
+            return (
+                orig_img,
+                rectangles_info[0]["center"][0],
+                rectangles_info[0]["center"][1],
+                rectangles_info[0]["angle"],
+            )
+        except Exception as exc:
+            print(exc)
+            return img, None, None, None
 
-                # 绘制角度指示线
-                angle_rad = math.radians(info['angle'])
-                line_length = 50
-                end_x = int(info['center'][0] + line_length * math.cos(angle_rad))
-                end_y = int(info['center'][1] + line_length * math.sin(angle_rad))
-                cv2.line(orig_img, info['center'], (end_x, end_y), (255, 0, 0), 2)
-
-                # 显示角度和中心点信息
-                text = f"Angle: {info['angle']:.1f}°"
-                cv2.putText(orig_img, text, (info['center'][0] + 10, info['center'][1] - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-            print(rectangles_info[0]['center'][0], rectangles_info[0]['center'][1], rectangles_info[0]['angle'])
-            # 打印检测到的矩形信息
-            for i, info in enumerate(rectangles_info):
-                print(f"矩形 {i + 1}:")
-                print(f"  中心点: ({info['center'][0]}, {info['center'][1]})")
-                print(f"  角度: {info['angle']:.2f}°")
-                print(f"  尺寸: {info['size'][0]}x{info['size'][1]} 像素")
-
-            return orig_img, rectangles_info[0]['center'][0], rectangles_info[0]['center'][1], rectangles_info[0]['angle']
-        except Exception as e:
-            print(e)
-
-    # 红砖二次识别
     def blinx_image_gain2(self, image):
-        # 调整图像大小（可根据实际情况调整尺寸）
         image = cv2.resize(image, (0, 0), fx=0.5, fy=0.5)
+        roi = (212, 60, 939, 484)
+        x, y, width, height = roi
+        roi_image = image[y : y + height, x : x + width]
 
-        # 预设ROI区域（x, y, width, height）
-        # 如需手动选择，将此部分注释掉
-        roi = (212, 60, 939, 484)  # 示例预设区域，根据实际图像调整
-
-        # 手动选择ROI（取消下面注释启用）
-        # print("请在图像上框选感兴趣区域，选好后按Enter确认")
-        # roi = cv2.selectROI("选择ROI区域", image, False)
-        # cv2.destroyWindow("选择ROI区域")
-
-        # 提取ROI
-        x, y, w, h = roi
-        roi_image = image[y:y + h, x:x + w]
-
-        # 图像去噪处理
         roi_image = cv2.GaussianBlur(roi_image, (5, 5), 0)
         roi_image = cv2.medianBlur(roi_image, 5)
         gray = cv2.cvtColor(roi_image, cv2.COLOR_BGR2GRAY)
-        # 二值化处理
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-        # 寻找轮廓
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-
-
         for contour in contours:
-            # 计算轮廓面积
             area = cv2.contourArea(contour)
             if area < 100000:
                 continue
-            # 计算最小外接矩形
+
             rect = cv2.minAreaRect(contour)
             box = cv2.boxPoints(rect)
-            box = np.int0(box)
+            box = np.intp(box)
+            box[:, 0] += x
+            box[:, 1] += y
 
-            # 将ROI内的坐标转换为原图坐标
-            for i in range(len(box)):
-                box[i][0] += x
-                box[i][1] += y
-
-            # 获取矩形的中心点坐标（转换为原图坐标）
             center = (int(rect[0][0] + x), int(rect[0][1] + y))
-            # 获取矩形的角度
             angle = rect[2]
-
-            # 在原图上绘制矩形和中心点
             cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
             cv2.circle(image, center, 5, (0, 255, 0), -1)
-
-            # 在中心点上方显示角度信息
-            cv2.putText(image, f"Angle: {angle:.1f} deg",
-                        (center[0], center[1] - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
-
-            print(f"矩形中心点：({center[0]}, {center[1]}), 角度：{angle} 度")
+            cv2.putText(
+                image,
+                f"Angle: {angle:.1f} deg",
+                (center[0], center[1] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (255, 0, 0),
+                1,
+            )
             return image, center[0], center[1], angle
 
-    # 砖块图像识别
-    def blinx_brick_image_rec2(self, image, mech_depth_map):
-        # 推理
-        boxes, segments, _ = self.model2(image, conf_threshold=self.conf, iou_threshold=self.iou)
-        # 画图
-        if len(boxes) > 0:
-            output_image, data_list, vertices_list = self.model2.draw_and_visualize_seg(
-                image, boxes, segments, vis=False, save=True)
-            print(data_list)
-            print(vertices_list[0][0][0])
-            dataS = []
-            for i in range(len(vertices_list)):
-                # 角度技计算
-                corners = [
-                    (vertices_list[i][0][0], vertices_list[i][0][1]), (vertices_list[i][1][0], vertices_list[i][1][1]),
-                    (vertices_list[i][2][0], vertices_list[i][2][1]), (vertices_list[i][3][0], vertices_list[i][3][1])
-                ]
-                angle = self.calculate_rectangle_angle(corners)
-                data = []
-                data.append(data_list[i][1][0])
-                data.append(data_list[i][1][1])
-                depth_num = mech_depth_map[int(data_list[i][1][1]), int(data_list[i][1][0])]
-                data.append(depth_num)
-                data.append(angle)
-                dataS.append(data)
-            if len(dataS) > 0:
-                sorted(dataS, key=lambda x: x[2], reverse=True)
-            return output_image, dataS[0]
-        else:
-            return image, None
-    # 红砖角度转型
-    def calculate_rectangle_angle(self, corners):
-        """
-        计算长方形长边与图像水平方向的平行角度
-
-        参数:
-        corners: 包含四个角点的列表，每个角点是一个二元组 (x, y)
-                 角点的顺序可以是任意的
-
-        返回:
-        angle: 长边与图像水平方向的夹角，单位为度，范围从 -45 到 45 度
-        """
-        # 如果角点数量不足4个，抛出异常
-        if len(corners) != 4:
-            raise ValueError("需要提供四个角点")
-
-        # 将角点转换为 numpy 数组
-        corners = np.array(corners, dtype=np.float32)
-
-        # 计算所有边的长度
-        edges = []
-        for i in range(4):
-            p1 = corners[i]
-            p2 = corners[(i + 1) % 4]
-            edge_length = np.sqrt(np.sum((p1 - p2) ** 2))
-            edges.append((edge_length, (p1, p2)))
-
-        # 按边长排序，长边在前
-        edges.sort(key=lambda x: x[0], reverse=True)
-
-        # 获取最长的边
-        longest_edge = edges[0][1]
-        p1, p2 = longest_edge
-
-        # 计算长边的向量
-        vector = p2 - p1
-
-        # 计算向量与水平方向的夹角（弧度）
-        angle_rad = np.arctan2(vector[1], vector[0])
-
-        # 将弧度转换为度
-        angle_deg = np.degrees(angle_rad)
-
-        # 将角度归一化到 -45 到 45 度之间
-        angle_deg = angle_deg % 180
-        if angle_deg >= 90:
-            angle_deg -= 180
-
-
-
-        return angle_deg
+        return image, None, None, None

@@ -1,82 +1,103 @@
 import configparser
-class Blinx_Public_Class():
+from ast import literal_eval
+
+
+def _parse_literal(config, section, option, fallback):
+    raw_value = config.get(section, option, fallback=None)
+    if raw_value is None:
+        return fallback
+    try:
+        return literal_eval(raw_value)
+    except (SyntaxError, ValueError):
+        return fallback
+
+
+class Blinx_Public_Class:
     def __init__(self):
-        # region 配置文件读取
         config = configparser.ConfigParser()
-        # -read读取ini文件
-        config.read('Config/config.ini', encoding="utf-8")
-        self.cam_sn = config.get('CamSN', 'cam_sn')
-        self.jaka_ip = config.get('DeviceIP', 'jaka_ip')
-        self.jaka_port = config.get('DeviceIP', 'jaka_port')
-        self.jaka_port_10000 = config.get('DeviceIP', 'jaka_port_10000')
-        self.minArea = config.get('Image_Process', 'minArea')
-        self.maxArea = config.get('Image_Process','maxArea')
-        self.M = config.get('RelationalMatrix', 'm')    # 二次定位
-        self.M1 = config.get('RelationalMatrix', 'm1')   # 钢筋捆扎
-        # endregion
-        # jaka机器人角度，坐标，输入数字IO数据，模拟IO
+        config.read("Config/config.ini", encoding="utf-8")
+
+        self.cam_sn = config.get("CamSN", "cam_sn", fallback="")
+        self.jaka_ip = config.get("DeviceIP", "jaka_ip", fallback="")
+        self.jaka_port = config.get("DeviceIP", "jaka_port", fallback="")
+        self.jaka_port_10000 = config.get("DeviceIP", "jaka_port_10000", fallback="")
+        self.minArea = config.get("Image_Process", "minArea", fallback="80000")
+        self.maxArea = config.get("Image_Process", "maxArea", fallback="150000")
+        self.M = config.get("RelationalMatrix", "m", fallback="[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]")
+        self.M1 = config.get("RelationalMatrix", "m1", fallback="[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]")
+
+        self.depth_min_valid_mm = config.getfloat("Image_Process", "depth_min_valid_mm", fallback=10.0)
+        self.depth_trim_percent = config.getfloat("Image_Process", "depth_trim_percent", fallback=5.0)
+        self.depth_min_valid_pixels = config.getint("Image_Process", "depth_min_valid_pixels", fallback=200)
+        self.depth_min_valid_ratio = config.getfloat("Image_Process", "depth_min_valid_ratio", fallback=0.2)
+        self.depth_erode_kernel = config.getint("Image_Process", "depth_erode_kernel", fallback=3)
+        self.depth_erode_iterations = config.getint("Image_Process", "depth_erode_iterations", fallback=1)
+        self.pca_min_axis_ratio = config.getfloat("Image_Process", "pca_min_axis_ratio", fallback=1.10)
+        self.vision_debug = config.getint("Image_Process", "vision_debug", fallback=1)
+
         self.joint_pos = ""
         self.tcp_pos = ""
         self.din_status = ""
         self.ao_value = ""
         self.ai_value = ""
-        # jaka机器人状态
+
         self.jaka_power = ""
         self.jaka_enable = ""
-        # Mech2D相机图像
-        self.mech_2d_image = None
-        # Mech3D相机图像
-        self.mech_depth_map = None
-        # Mech点云图
-        self.mech_point_cloud = None
-        # 梅卡相机链接标识
-        self.mech_connected = False
-        # 相机是否连续采集显示
-        self.is_continue_show = False
 
-        # 机械臂角度判断与坐标判断使用参数
+        self.mech_2d_image = None
+        self.mech_depth_map = None
+        self.mech_point_cloud = None
+        self.mech_connected = False
+        self.is_continue_show = False
         self.new_data = None
 
-        # 吸盘切换
         self.sucker_process = "0-0"
-        self.sucker_type = 0  # 0取  1放
+        self.sucker_type = 0
         self.sucker_state = False
 
-        # 捆扎机切换
         self.bundle_process = "0-0"
-        self.bundle_type = 0  # 0取   1放
+        self.bundle_type = 0
         self.bundle_state = False
 
-        # 瓷砖流程参数
-        self.ceramic_process_state = False   # 瓷砖流程状态
-        self.ceramic_process_node = "0-0"   # 瓷砖流程节点
-        self.ceramic_process_num = 0   # 瓷砖流程抓取次数
-        self.ceramic_process_list = []   # 瓷砖识别结果
+        self.ceramic_process_state = False
+        self.ceramic_process_node = "0-0"
+        self.ceramic_process_num = 0
+        self.ceramic_process_list = []
+        self.ceramic_process_result = None
 
-        # 墙砖流程参数
-        self.brick_process_state = False   # 墙砖流程状态
-        self.brick_process_node = "0-0"  # 墙砖流程节点
-        self.brick_process_num = 0   # 墙砖抓取次数
-        self.brick_process_list = []  # 瓷砖识别结果
+        self.brick_process_state = False
+        self.brick_process_node = "0-0"
+        self.brick_process_num = 0
+        self.brick_process_list = []
+        self.brick_process_result = None
 
-        # 钢筋捆扎流程参数
-        self.rebar_process_state = False  # 钢筋捆扎流程状态
-        self.rebar_process_node = "0-0"  # 钢筋捆扎流程节点
-        self.rebar_process_num = 0   # 钢筋捆扎次数
-        self.rebar_data_list = None   # 钢筋捆扎识别结果
+        self.rebar_process_state = False
+        self.rebar_process_node = "0-0"
+        self.rebar_process_num = 0
+        self.rebar_data_list = None
 
-        # 机械臂点位数据
-        self.initial_angle = eval(config.get('Positioning', 'initial_angle'))   # 初始角度
-        self.sucker_actuator_loc = eval(config.get('Positioning', 'sucker_actuator_loc'))   # 吸盘位置
-        self.bundle_actuator_loc = eval(config.get('Positioning', 'bundle_actuator_loc'))   # 困扎机位置
-        self.identify_loc1 = eval(config.get('Positioning', 'identify_loc1'))   # 钢筋捆扎拍照位置
-        self.identify_loc2 = eval(config.get('Positioning', 'identify_loc2'))   # 砖块拍照点位
-        self.ceramic_place_loc = eval(config.get('Positioning', 'ceramic_place_loc'))   # 瓷砖放置零点
-        self.ceramic_excessive_loc = eval(config.get('Positioning', 'ceramic_excessive_loc'))   # 瓷砖放置过度点
-        self.brick_place_loc = eval(config.get('Positioning', 'brick_place_loc'))   # 红砖放置零点
-        self.brick_excessive_loc = eval(config.get('Positioning', 'brick_excessive_loc'))   # 红砖放置过度点
-        self.secondary_positioning_loc = eval(config.get('Positioning', 'secondary_positioning_loc'))   # 二次定位点
-        self.secondary_photography_loc = eval(config.get('Positioning', 'secondary_photography_loc'))   # 二次拍照点
+        self.last_brick_rotation_delta = None
+        self.last_ceramic_rotation_delta = None
 
-
-
+        zero_pose = [0, 0, 0, 0, 0, 0]
+        self.initial_angle = _parse_literal(config, "Positioning", "initial_angle", zero_pose)
+        self.sucker_actuator_loc = _parse_literal(config, "Positioning", "sucker_actuator_loc", zero_pose)
+        self.bundle_actuator_loc = _parse_literal(config, "Positioning", "bundle_actuator_loc", zero_pose)
+        self.identify_loc1 = _parse_literal(config, "Positioning", "identify_loc1", zero_pose)
+        self.identify_loc2 = _parse_literal(config, "Positioning", "identify_loc2", zero_pose)
+        self.ceramic_place_loc = _parse_literal(config, "Positioning", "ceramic_place_loc", zero_pose)
+        self.ceramic_excessive_loc = _parse_literal(config, "Positioning", "ceramic_excessive_loc", zero_pose)
+        self.brick_place_loc = _parse_literal(config, "Positioning", "brick_place_loc", zero_pose)
+        self.brick_excessive_loc = _parse_literal(config, "Positioning", "brick_excessive_loc", zero_pose)
+        self.secondary_positioning_loc = _parse_literal(
+            config,
+            "Positioning",
+            "secondary_positioning_loc",
+            zero_pose,
+        )
+        self.secondary_photography_loc = _parse_literal(
+            config,
+            "Positioning",
+            "secondary_photography_loc",
+            zero_pose,
+        )
