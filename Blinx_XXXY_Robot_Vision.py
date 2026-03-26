@@ -140,6 +140,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
 
         summary = {}
         fields = [
+            "source",
             "class_id",
             "score",
             "pixel_x",
@@ -152,6 +153,19 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
             "angle_fallback",
             "axis_ratio",
             "is_valid",
+            "geometry_score",
+            "decision_status",
+            "decision_reason",
+            "decision_warning",
+            "rgb_low_quality",
+            "rgb_low_quality_reasons",
+            "rgb_depth_match_found",
+            "match_center_distance_px",
+            "match_angle_delta_deg",
+            "match_depth_delta_mm",
+            "match_bbox_iou",
+            "match_mask_iou",
+            "matched_depth_geometry_score",
             "robot_x",
             "robot_y",
         ]
@@ -1987,6 +2001,9 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.Image_Show_2.setPixmap(pixmap)
                     self.Image_Show_2.setScaledContents(True)  # 图像自适应窗口大小
                     if pick_result is not None:
+                        if pick_result.get("decision_status") is not None:
+                            print("primary_pick decision:", pick_result.get("decision_status"),
+                                  pick_result.get("decision_reason"))
                         x, y, z = self.image_camera.blinx_image_to_camera(
                             pick_result["pixel_x"],
                             pick_result["pixel_y"],
@@ -2269,10 +2286,6 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
 
                         # 深度图像显示
                         # 获取图像高度和宽度
-                        depth_8bit = cv2.normalize(self.public_class.mech_depth_map, None, 0, 255,
-                                                   cv2.NORM_MINMAX, cv2.CV_8UC1)
-                        depth_color = cv2.applyColorMap(depth_8bit, cv2.COLORMAP_JET)
-                        depth_rgb = cv2.cvtColor(depth_color, cv2.COLOR_BGR2RGB)
                         heigt, width = depth_rgb.shape[:2]
                         # 显示图像到界面
                         pixmap = QtGui.QImage(depth_rgb, width, heigt, QtGui.QImage.Format_RGB888)
@@ -2892,10 +2905,11 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.mech_2d_image, self.public_class.mech_depth_map, self.public_class.mech_point_cloud = self.mechCam.GrabImages()
 
                     # 图像识别
-                    image, depth_rgb, pick_result = self.yolo_iamge.blinx_brick_image_rec2(
+                    image, depth_rgb, pick_result, primary_pick_report = self.yolo_iamge.blinx_brick_primary_pick_fusion(
                         self.public_class.mech_2d_image,
                         self.public_class.mech_depth_map,
                     )
+                    fusion_result = primary_pick_report["fusion_report"]
 
                     # 将图像显示在界面中
                     # 获取图像高度和宽度
@@ -2940,6 +2954,23 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             extra={
                                 "capture_stage": "primary_pick",
                                 "pick_result": self._summarize_pick_result(pick_result),
+                                "vision_decision": {
+                                    "decision_status": fusion_result.get("decision_status"),
+                                    "decision_reason": fusion_result.get("decision_reason"),
+                                    "decision_warning": fusion_result.get("decision_warning"),
+                                    "rgb_quality": fusion_result.get("rgb_quality"),
+                                    "depth_fallback": fusion_result.get("depth_fallback"),
+                                    "rgb_selected_candidate": self._summarize_pick_result(
+                                        fusion_result.get("rgb_selected_candidate")
+                                    ),
+                                    "depth_selected_candidate": self._summarize_pick_result(
+                                        fusion_result.get("depth_selected_candidate")
+                                    ),
+                                    "matched_depth_candidate": self._summarize_pick_result(
+                                        fusion_result.get("matched_depth_candidate")
+                                    ),
+                                    "match_metrics": fusion_result.get("match_metrics"),
+                                },
                                 "camera_xyz": [float(x), float(y), float(z)],
                                 "robot_xy": {"X": float(xy_data["X"]), "Y": float(xy_data["Y"])},
                                 "command_target": data,
@@ -2949,6 +2980,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.public_class.new_data = data
                         self.public_class.brick_process_node = "3-3-1"
                     else:
+                        print("primary_pick failed:", fusion_result.get("decision_reason"))
                         # 结束
                         print("结束")
             # 判断机械臂是否达到位置，如果到达，计算角度，并让机械臂按照角度旋转
@@ -3228,7 +3260,11 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.public_class.mech_2d_image, self.public_class.mech_depth_map, self.public_class.mech_point_cloud = self.mechCam.GrabImages()
 
                         # 图像识别
-                        image, alignment_data = self.yolo_iamge.blinx_brickandporcelain_image_rec(self.public_class.mech_2d_image)
+                        image, depth_rgb, alignment_result, secondary_report = self.yolo_iamge.blinx_brick_secondary_alignment_depth_first(
+                            self.public_class.mech_2d_image,
+                            self.public_class.mech_depth_map,
+                        )
+                        secondary_decision = secondary_report["decision_report"]
 
                         # 将图像显示在界面中
                         # 获取图像高度和宽度
@@ -3240,10 +3276,6 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.Image_Show_1.setScaledContents(True)  # 图像自适应窗口大小
                         # 深度图像显示
                         # 获取图像高度和宽度
-                        depth_8bit = cv2.normalize(self.public_class.mech_depth_map, None, 0, 255,
-                                                   cv2.NORM_MINMAX, cv2.CV_8UC1)
-                        depth_color = cv2.applyColorMap(depth_8bit, cv2.COLORMAP_JET)
-                        depth_rgb = cv2.cvtColor(depth_color, cv2.COLOR_BGR2RGB)
                         heigt, width = depth_rgb.shape[:2]
                         # 显示图像到界面
                         pixmap = QtGui.QImage(depth_rgb, width, heigt, QtGui.QImage.Format_RGB888)
@@ -3252,21 +3284,51 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.Image_Show_2.setScaledContents(True)  # 图像自适应窗口大小
 
                         time.sleep(1)
-                        if alignment_data is None:
+                        if alignment_result is None:
                             self._brick_record_capture(
                                 "secondary_alignment",
                                 self.public_class.mech_2d_image,
                                 self.public_class.mech_depth_map,
                                 image,
-                                extra={"alignment_result": None},
+                                extra={
+                                    "alignment_result": None,
+                                    "alignment_result_detail": None,
+                                    "vision_decision": {
+                                        "decision_status": secondary_decision.get("decision_status"),
+                                        "source": None,
+                                        "depth_candidate": self._summarize_pick_result(
+                                            secondary_decision.get("depth_candidate")
+                                        ),
+                                        "rgb_fallback_used": bool(secondary_decision.get("rgb_fallback_used")),
+                                    },
+                                },
                             )
                             self._brick_record_event(
                                 "secondary_alignment_missing",
-                                extra={"reason": "二次识别未返回有效坐标"},
+                                extra={
+                                    "reason": "二次识别未返回有效坐标",
+                                    "vision_decision": {
+                                        "decision_status": secondary_decision.get("decision_status"),
+                                        "source": None,
+                                        "depth_candidate": self._summarize_pick_result(
+                                            secondary_decision.get("depth_candidate")
+                                        ),
+                                        "rgb_fallback_used": bool(secondary_decision.get("rgb_fallback_used")),
+                                    },
+                                },
                             )
                             raise ValueError("Secondary alignment recognition returned None")
+                        print(
+                            "secondary_alignment decision:",
+                            secondary_decision.get("decision_status"),
+                            "source:",
+                            alignment_result.get("source"),
+                        )
                         # 进行标定转换
-                        test_robot_xy = np.dot(self.m_ini, [alignment_data[0], alignment_data[1], 1])  # 仿射逆变换，得到坐标（x,y)
+                        test_robot_xy = np.dot(
+                            self.m_ini,
+                            [alignment_result["pixel_x"], alignment_result["pixel_y"], 1],
+                        )  # 仿射逆变换，得到坐标（x,y)
                         data = [float(test_robot_xy[0]),
                                 float(test_robot_xy[1]),
                                 float(self.public_class.tcp_pos[2]),
@@ -3279,14 +3341,40 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             self.public_class.mech_depth_map,
                             image,
                             extra={
-                                "alignment_result": [float(alignment_data[0]), float(alignment_data[1])],
+                                "alignment_result": [
+                                    float(alignment_result["pixel_x"]),
+                                    float(alignment_result["pixel_y"]),
+                                ],
+                                "alignment_result_detail": self._summarize_pick_result(alignment_result),
+                                "vision_decision": {
+                                    "decision_status": secondary_decision.get("decision_status"),
+                                    "source": alignment_result.get("source"),
+                                    "depth_candidate": self._summarize_pick_result(
+                                        secondary_decision.get("depth_candidate")
+                                    ),
+                                    "rgb_fallback_used": bool(secondary_decision.get("rgb_fallback_used")),
+                                },
                                 "command_target": data,
                             },
                         )
                         self._brick_record_event(
                             "secondary_alignment_command",
                             command_target=data,
-                            extra={"alignment_result": [float(alignment_data[0]), float(alignment_data[1])]},
+                            extra={
+                                "alignment_result": [
+                                    float(alignment_result["pixel_x"]),
+                                    float(alignment_result["pixel_y"]),
+                                ],
+                                "alignment_result_detail": self._summarize_pick_result(alignment_result),
+                                "vision_decision": {
+                                    "decision_status": secondary_decision.get("decision_status"),
+                                    "source": alignment_result.get("source"),
+                                    "depth_candidate": self._summarize_pick_result(
+                                        secondary_decision.get("depth_candidate")
+                                    ),
+                                    "rgb_fallback_used": bool(secondary_decision.get("rgb_fallback_used")),
+                                },
+                            },
                         )
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data

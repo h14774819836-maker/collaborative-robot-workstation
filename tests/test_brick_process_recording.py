@@ -6,7 +6,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from brick_process_recording import BrickProcessRecorder
+from brick_process_recording import BrickProcessRecorder, save_rgb_png
 
 
 class BrickProcessRecorderTests(unittest.TestCase):
@@ -88,6 +88,25 @@ class BrickProcessRecorderTests(unittest.TestCase):
 
             image = cv2.imread(str(case_dir / "secondary_alignment_display_panel.png"), cv2.IMREAD_UNCHANGED)
             self.assertIsNotNone(image)
+
+    def test_save_rgb_png_supports_non_ascii_paths(self):
+        rgb_image = np.zeros((10, 12, 3), dtype=np.uint8)
+        rgb_image[:, :, 0] = 25
+        rgb_image[:, :, 1] = 50
+        rgb_image[:, :, 2] = 75
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "中文目录"
+            output_dir.mkdir()
+            image_path = output_dir / "测试图.png"
+
+            save_rgb_png(image_path, rgb_image)
+
+            image_buffer = np.fromfile(str(image_path), dtype=np.uint8)
+            decoded = cv2.imdecode(image_buffer, cv2.IMREAD_COLOR)
+            self.assertIsNotNone(decoded)
+            round_trip_rgb = cv2.cvtColor(decoded, cv2.COLOR_BGR2RGB)
+            self.assertTrue(np.array_equal(round_trip_rgb, rgb_image))
 
 
 if __name__ == "__main__":

@@ -34,6 +34,106 @@ class Blinx_Public_Class:
         self.depth_erode_iterations = config.getint("Image_Process", "depth_erode_iterations", fallback=1)
         self.pca_min_axis_ratio = config.getfloat("Image_Process", "pca_min_axis_ratio", fallback=1.10)
         self.vision_debug = config.getint("Image_Process", "vision_debug", fallback=1)
+        self.primary_pick_depth_roi = _parse_literal(config, "Image_Process", "primary_pick_depth_roi", [0, 0, 0, 0])
+        self.secondary_alignment_depth_roi = _parse_literal(
+            config,
+            "Image_Process",
+            "secondary_alignment_depth_roi",
+            list(self.primary_pick_depth_roi),
+        )
+        self.depth_geom_board_estimation_mode = config.get(
+            "Image_Process",
+            "depth_geom_board_estimation_mode",
+            fallback="global_hist",
+        )
+        self.depth_geom_hist_bin_mm = config.getfloat("Image_Process", "depth_geom_hist_bin_mm", fallback=2.0)
+        self.depth_geom_hist_peak_refine_window_mm = config.getfloat(
+            "Image_Process",
+            "depth_geom_hist_peak_refine_window_mm",
+            fallback=3.0,
+        )
+        self.depth_geom_expected_long_mm = config.getfloat("Image_Process", "depth_geom_expected_long_mm", fallback=200.0)
+        self.depth_geom_expected_short_mm = config.getfloat("Image_Process", "depth_geom_expected_short_mm", fallback=100.0)
+        self.depth_geom_expected_height_mm = config.getfloat("Image_Process", "depth_geom_expected_height_mm", fallback=70.0)
+        self.depth_geom_long_tol_mm = config.getfloat("Image_Process", "depth_geom_long_tol_mm", fallback=40.0)
+        self.depth_geom_short_tol_mm = config.getfloat("Image_Process", "depth_geom_short_tol_mm", fallback=30.0)
+        self.depth_geom_height_tol_mm = config.getfloat("Image_Process", "depth_geom_height_tol_mm", fallback=20.0)
+        self.depth_geom_min_brick_height_mm = config.getfloat(
+            "Image_Process",
+            "depth_geom_min_brick_height_mm",
+            fallback=25.0,
+        )
+        self.depth_geom_max_brick_height_mm = config.getfloat(
+            "Image_Process",
+            "depth_geom_max_brick_height_mm",
+            fallback=130.0,
+        )
+        self.depth_geom_min_region_area_px = config.getint("Image_Process", "depth_geom_min_region_area_px", fallback=2000)
+        self.depth_geom_max_region_area_px = config.getint("Image_Process", "depth_geom_max_region_area_px", fallback=400000)
+        self.secondary_depth_geom_min_region_area_px = config.getint(
+            "Image_Process",
+            "secondary_depth_geom_min_region_area_px",
+            fallback=self.depth_geom_min_region_area_px,
+        )
+        self.secondary_depth_geom_max_region_area_px = config.getint(
+            "Image_Process",
+            "secondary_depth_geom_max_region_area_px",
+            fallback=self.depth_geom_max_region_area_px,
+        )
+        self.depth_geom_median_kernel = config.getint("Image_Process", "depth_geom_median_kernel", fallback=3)
+        self.depth_geom_open_kernel = config.getint("Image_Process", "depth_geom_open_kernel", fallback=3)
+        self.depth_geom_close_kernel = config.getint("Image_Process", "depth_geom_close_kernel", fallback=5)
+        self.depth_geom_border_margin_px = config.getint("Image_Process", "depth_geom_border_margin_px", fallback=12)
+        self.depth_geom_planarity_max_std_mm = config.getfloat(
+            "Image_Process",
+            "depth_geom_planarity_max_std_mm",
+            fallback=3.0,
+        )
+        self.depth_geom_min_rectangularity = config.getfloat(
+            "Image_Process",
+            "depth_geom_min_rectangularity",
+            fallback=0.65,
+        )
+        self.depth_geom_min_completeness = config.getfloat(
+            "Image_Process",
+            "depth_geom_min_completeness",
+            fallback=0.60,
+        )
+        self.primary_pick_rgb_depth_center_thresh_px = config.getfloat(
+            "Image_Process",
+            "primary_pick_rgb_depth_center_thresh_px",
+            fallback=80.0,
+        )
+        self.primary_pick_rgb_depth_angle_thresh_deg = config.getfloat(
+            "Image_Process",
+            "primary_pick_rgb_depth_angle_thresh_deg",
+            fallback=20.0,
+        )
+        self.primary_pick_rgb_depth_iou_thresh = config.getfloat(
+            "Image_Process",
+            "primary_pick_rgb_depth_iou_thresh",
+            fallback=0.20,
+        )
+        self.primary_pick_rgb_depth_mm_thresh = config.getfloat(
+            "Image_Process",
+            "primary_pick_rgb_depth_mm_thresh",
+            fallback=10.0,
+        )
+        self.primary_pick_rgb_low_score_thresh = config.getfloat(
+            "Image_Process",
+            "primary_pick_rgb_low_score_thresh",
+            fallback=0.90,
+        )
+        self.primary_pick_rgb_low_valid_ratio_thresh = config.getfloat(
+            "Image_Process",
+            "primary_pick_rgb_low_valid_ratio_thresh",
+            fallback=0.70,
+        )
+        self.primary_pick_depth_fallback_geom_thresh = config.getfloat(
+            "Image_Process",
+            "primary_pick_depth_fallback_geom_thresh",
+            fallback=0.88,
+        )
 
         self.joint_pos = ""
         self.tcp_pos = ""

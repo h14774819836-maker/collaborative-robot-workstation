@@ -48,8 +48,12 @@ class YOLOv8:
         Returns:
             output_img: The output image with drawn detections.
         """
-        # Create an inference session using the ONNX model and specify execution providers
-        session = ort.InferenceSession(self.onnx_model, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+        # Use only providers that exist in the current environment to avoid noisy runtime warnings.
+        available_providers = ort.get_available_providers()
+        providers = [provider for provider in ["CUDAExecutionProvider", "CPUExecutionProvider"] if provider in available_providers]
+        if not providers:
+            providers = available_providers
+        session = ort.InferenceSession(self.onnx_model, providers=providers)
 
         # Get the model inputs
         model_inputs = session.get_inputs()

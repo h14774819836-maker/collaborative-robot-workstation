@@ -46,8 +46,13 @@ def build_depth_preview(depth_map: np.ndarray) -> np.ndarray:
 
 def save_rgb_png(path: Path, rgb_image: np.ndarray) -> None:
     bgr_image = cv2.cvtColor(np.ascontiguousarray(rgb_image), cv2.COLOR_RGB2BGR)
-    if not cv2.imwrite(str(path), bgr_image):
-        raise IOError(f"Failed to save image: {path}")
+    success, encoded = cv2.imencode(".png", bgr_image)
+    if not success:
+        raise IOError(f"Failed to encode image: {path}")
+    try:
+        encoded.tofile(str(path))
+    except OSError as exc:
+        raise IOError(f"Failed to save image: {path}") from exc
 
 
 def _pad_to_height(image: np.ndarray, target_height: int) -> np.ndarray:

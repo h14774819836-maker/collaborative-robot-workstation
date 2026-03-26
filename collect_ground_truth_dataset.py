@@ -167,8 +167,13 @@ def build_display_panel(
 
 def save_rgb_png(path: Path, rgb_image: np.ndarray) -> None:
     bgr_image = cv2.cvtColor(np.ascontiguousarray(rgb_image), cv2.COLOR_RGB2BGR)
-    if not cv2.imwrite(str(path), bgr_image):
-        raise IOError(f"Failed to save image: {path}")
+    success, encoded = cv2.imencode(".png", bgr_image)
+    if not success:
+        raise IOError(f"Failed to encode image: {path}")
+    try:
+        encoded.tofile(str(path))
+    except OSError as exc:
+        raise IOError(f"Failed to save image: {path}") from exc
 
 
 def build_case_metadata(
