@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 
 from ImageProcessing.image_recognition import (
+    build_secondary_alignment_decision_lines,
     build_secondary_alignment_rgb_candidate,
     evaluate_depth_fallback_candidate,
     evaluate_rgb_candidate_quality,
@@ -35,6 +36,7 @@ FUSION_CFG = {
     "primary_pick_rgb_low_score_thresh": 0.90,
     "primary_pick_rgb_low_valid_ratio_thresh": 0.70,
     "primary_pick_depth_fallback_geom_thresh": 0.88,
+    "primary_pick_decision_mode": "depth_first",
 }
 
 
@@ -175,7 +177,7 @@ class FusionDecisionTests(unittest.TestCase):
         self.assertLess(match_report["metrics"]["center_distance_px"], 5.0)
         self.assertGreater(match_report["metrics"]["mask_iou"], 0.8)
 
-    def test_select_primary_pick_candidate_keeps_rgb_when_same_brick_depth_matches(self):
+    def test_select_primary_pick_candidate_prefers_depth_when_same_brick_depth_matches(self):
         rgb_mask = np.zeros((120, 120), dtype=bool)
         rgb_mask[40:90, 45:70] = True
         depth_match_mask = np.zeros((120, 120), dtype=bool)
@@ -209,12 +211,12 @@ class FusionDecisionTests(unittest.TestCase):
             FUSION_CFG,
         )
 
-        self.assertEqual(fusion_report["decision_status"], "rgb_depth_agree_pass")
-        self.assertEqual(fusion_report["selected_candidate"]["source"], "rgb_seg")
+        self.assertEqual(fusion_report["decision_status"], "depth_primary_pass")
+        self.assertEqual(fusion_report["selected_candidate"]["source"], "depth_geom")
         self.assertTrue(fusion_report["selected_candidate"]["rgb_depth_match_found"])
         self.assertAlmostEqual(fusion_report["selected_candidate"]["match_mask_iou"], 0.859375, delta=0.05)
 
-    def test_select_primary_pick_candidate_uses_depth_fallback_for_low_quality_rgb(self):
+    def test_select_primary_pick_candidate_prefers_depth_for_low_quality_rgb(self):
         rgb_mask = np.zeros((100, 100), dtype=bool)
         rgb_mask[10:40, 10:30] = True
         depth_mask = np.zeros((100, 100), dtype=bool)
@@ -245,10 +247,10 @@ class FusionDecisionTests(unittest.TestCase):
             FUSION_CFG,
         )
 
-        self.assertEqual(fusion_report["decision_status"], "depth_fallback_pass")
+        self.assertEqual(fusion_report["decision_status"], "depth_primary_pass")
         self.assertEqual(fusion_report["selected_candidate"]["source"], "depth_geom")
 
-    def test_select_primary_pick_candidate_keeps_high_quality_rgb_without_depth_match(self):
+    def test_select_primary_pick_candidate_keeps_depth_even_without_rgb_match(self):
         rgb_mask = np.zeros((100, 100), dtype=bool)
         rgb_mask[10:40, 10:30] = True
         depth_mask = np.zeros((100, 100), dtype=bool)
@@ -277,6 +279,67 @@ class FusionDecisionTests(unittest.TestCase):
             {"selected_candidate": rgb_candidate, "ranked_candidates": [rgb_candidate]},
             {"selected_candidate": depth_candidate, "ranked_candidates": [depth_candidate]},
             FUSION_CFG,
+        )
+
+        self.assertEqual(fusion_report["decision_status"], "depth_primary_pass")
+        self.assertEqual(fusion_report["selected_candidate"]["source"], "depth_geom")
+        self.assertEqual(fusion_report["decision_warning"], "rgb_mismatch")
+
+    def test_select_primary_pick_candidate_uses_rgb_only_when_depth_missing(self):
+        rgb_mask = np.zeros((100, 100), dtype=bool)
+        rgb_mask[10:40, 10:30] = True
+
+        rgb_candidate = build_candidate(
+            rgb_mask,
+            pixel_x=20,
+            pixel_y=25,
+            angle_deg=-89.0,
+            depth_mm=526.0,
+            score=0.96,
+            valid_depth_ratio=0.88,
+        )
+
+        fusion_report = select_primary_pick_candidate(
+            {"selected_candidate": rgb_candidate, "ranked_candidates": [rgb_candidate]},
+            {"selected_candidate": None, "ranked_candidates": []},
+            FUSION_CFG,
+        )
+
+        self.assertEqual(fusion_report["decision_status"], "rgb_fallback_pass")
+        self.assertEqual(fusion_report["selected_candidate"]["source"], "rgb_seg")
+        self.assertEqual(fusion_report["decision_reason"], "depth_missing_rgb_fallback")
+
+    def test_select_primary_pick_candidate_can_still_use_legacy_rgb_first_mode(self):
+        rgb_mask = np.zeros((100, 100), dtype=bool)
+        rgb_mask[10:40, 10:30] = True
+        depth_mask = np.zeros((100, 100), dtype=bool)
+        depth_mask[60:90, 60:85] = True
+
+        rgb_candidate = build_candidate(
+            rgb_mask,
+            pixel_x=20,
+            pixel_y=25,
+            angle_deg=-89.0,
+            depth_mm=526.0,
+            score=0.96,
+            valid_depth_ratio=0.88,
+        )
+        depth_candidate = build_candidate(
+            depth_mask,
+            pixel_x=72,
+            pixel_y=75,
+            angle_deg=-89.0,
+            depth_mm=526.0,
+            source="depth_geom",
+            geometry_score=0.95,
+        )
+        legacy_cfg = dict(FUSION_CFG)
+        legacy_cfg["primary_pick_decision_mode"] = "rgb_first_legacy"
+
+        fusion_report = select_primary_pick_candidate(
+            {"selected_candidate": rgb_candidate, "ranked_candidates": [rgb_candidate]},
+            {"selected_candidate": depth_candidate, "ranked_candidates": [depth_candidate]},
+            legacy_cfg,
         )
 
         self.assertEqual(fusion_report["decision_status"], "rgb_only_pass")
@@ -339,6 +402,25 @@ class FusionDecisionTests(unittest.TestCase):
 
         self.assertEqual(decision_report["decision_status"], "secondary_no_pick")
         self.assertIsNone(decision_report["selected_candidate"])
+
+    def test_build_secondary_alignment_decision_lines_includes_angle_when_available(self):
+        decision_report = {
+            "decision_status": "secondary_depth_pass",
+            "rgb_fallback_used": False,
+            "selected_candidate": {
+                "source": "depth_geom",
+                "pixel_x": 123.4,
+                "pixel_y": 567.8,
+                "angle_deg": -32.5,
+                "geometry_score": 0.93,
+            },
+        }
+
+        lines = build_secondary_alignment_decision_lines(decision_report)
+
+        self.assertIn("Decision secondary_depth_pass  Source depth_geom", lines[0])
+        self.assertIn("A -32.50", lines[1])
+        self.assertIn("Geom 0.93", lines[2])
 
 
 if __name__ == "__main__":

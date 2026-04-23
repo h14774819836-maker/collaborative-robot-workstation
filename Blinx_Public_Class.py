@@ -134,6 +134,31 @@ class Blinx_Public_Class:
             "primary_pick_depth_fallback_geom_thresh",
             fallback=0.88,
         )
+        self.primary_pick_decision_mode = config.get(
+            "Image_Process",
+            "primary_pick_decision_mode",
+            fallback="depth_first",
+        )
+        self.brick_linear_speed_fast = config.getfloat(
+            "Image_Process",
+            "brick_linear_speed_fast",
+            fallback=250.0,
+        )
+        self.brick_linear_speed_pick = config.getfloat(
+            "Image_Process",
+            "brick_linear_speed_pick",
+            fallback=self.brick_linear_speed_fast,
+        )
+        self.brick_joint_speed_rotate = config.getfloat(
+            "Image_Process",
+            "brick_joint_speed_rotate",
+            fallback=50.0,
+        )
+        self.brick_slider_speed = config.getfloat(
+            "Image_Process",
+            "brick_slider_speed",
+            fallback=100.0,
+        )
 
         self.joint_pos = ""
         self.tcp_pos = ""
@@ -170,6 +195,7 @@ class Blinx_Public_Class:
         self.brick_process_num = 0
         self.brick_process_list = []
         self.brick_process_result = None
+        self.brick_secondary_alignment_result = None
 
         self.rebar_process_state = False
         self.rebar_process_node = "0-0"

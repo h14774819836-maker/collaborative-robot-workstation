@@ -421,40 +421,68 @@ def select_primary_pick_candidate(
     rgb_quality = evaluate_rgb_candidate_quality(rgb_selected, cfg)
     depth_fallback = evaluate_depth_fallback_candidate(depth_selected, cfg)
     match_report = match_depth_candidate_to_rgb(rgb_selected, depth_candidates, cfg)
+    decision_mode = str(cfg.get("primary_pick_decision_mode", "depth_first")).strip().lower()
 
     decision_status = "no_pick"
     decision_reason = "rgb_and_depth_missing"
     decision_warning = None
     selected_candidate = None
 
-    if rgb_selected is not None:
-        if match_report["match_found"]:
-            selected_candidate = dict(rgb_selected)
-            selected_candidate["source"] = "rgb_seg"
-            decision_status = "rgb_depth_agree_pass"
-            decision_reason = "rgb_and_depth_matched_same_brick"
-        elif rgb_quality["is_low_quality"] and depth_fallback["is_ready"]:
+    if decision_mode == "rgb_first_legacy":
+        if rgb_selected is not None:
+            if match_report["match_found"]:
+                selected_candidate = dict(rgb_selected)
+                selected_candidate["source"] = "rgb_seg"
+                decision_status = "rgb_depth_agree_pass"
+                decision_reason = "rgb_and_depth_matched_same_brick"
+            elif rgb_quality["is_low_quality"] and depth_fallback["is_ready"]:
+                selected_candidate = dict(depth_selected)
+                selected_candidate["source"] = "depth_geom"
+                decision_status = "depth_fallback_pass"
+                decision_reason = "rgb_low_quality_depth_fallback"
+            else:
+                selected_candidate = dict(rgb_selected)
+                selected_candidate["source"] = "rgb_seg"
+                decision_status = "rgb_only_pass"
+                if depth_selected is None:
+                    decision_reason = "rgb_only_depth_missing"
+                else:
+                    decision_reason = "rgb_kept_without_depth_match"
+                    decision_warning = "depth_mismatch"
+        elif depth_fallback["is_ready"]:
             selected_candidate = dict(depth_selected)
             selected_candidate["source"] = "depth_geom"
             decision_status = "depth_fallback_pass"
-            decision_reason = "rgb_low_quality_depth_fallback"
-        else:
+            decision_reason = "rgb_missing_depth_fallback"
+        elif depth_selected is not None:
+            decision_reason = "rgb_missing_depth_not_ready"
+            decision_warning = "depth_not_ready"
+    else:
+        if depth_fallback["is_ready"]:
+            selected_candidate = dict(depth_selected)
+            selected_candidate["source"] = "depth_geom"
+            decision_status = "depth_primary_pass"
+            if rgb_selected is None:
+                decision_reason = "depth_primary_rgb_missing"
+            elif match_report["match_found"]:
+                decision_reason = "depth_primary_rgb_verified"
+            elif rgb_quality["is_low_quality"]:
+                decision_reason = "depth_primary_rgb_low_quality"
+            else:
+                decision_reason = "depth_primary_rgb_mismatch"
+                decision_warning = "rgb_mismatch"
+        elif rgb_selected is not None:
             selected_candidate = dict(rgb_selected)
             selected_candidate["source"] = "rgb_seg"
-            decision_status = "rgb_only_pass"
+            decision_status = "rgb_fallback_pass"
             if depth_selected is None:
-                decision_reason = "rgb_only_depth_missing"
+                decision_reason = "depth_missing_rgb_fallback"
             else:
-                decision_reason = "rgb_kept_without_depth_match"
-                decision_warning = "depth_mismatch"
-    elif depth_fallback["is_ready"]:
-        selected_candidate = dict(depth_selected)
-        selected_candidate["source"] = "depth_geom"
-        decision_status = "depth_fallback_pass"
-        decision_reason = "rgb_missing_depth_fallback"
-    elif depth_selected is not None:
-        decision_reason = "rgb_missing_depth_not_ready"
-        decision_warning = "depth_not_ready"
+                decision_reason = "depth_not_ready_rgb_fallback"
+                decision_warning = "depth_not_ready"
+        elif depth_selected is not None:
+            decision_reason = "depth_not_ready_rgb_missing"
+            decision_warning = "depth_not_ready"
 
     if selected_candidate is not None:
         selected_candidate["decision_status"] = decision_status
@@ -639,9 +667,12 @@ def build_secondary_alignment_decision_lines(decision_report: Dict[str, object])
         f"Decision {decision_report.get('decision_status')}  Source {source}",
     ]
     if isinstance(selected_candidate, dict):
+        angle_text = "None"
+        if selected_candidate.get("angle_deg") is not None:
+            angle_text = f"{float(selected_candidate['angle_deg']):.2f}"
         lines.append(
             f"Final ({int(round(float(selected_candidate['pixel_x'])))}, "
-            f"{int(round(float(selected_candidate['pixel_y'])))})"
+            f"{int(round(float(selected_candidate['pixel_y'])))})  A {angle_text}"
         )
         if selected_candidate.get("geometry_score") is not None:
             lines.append(f"Geom {float(selected_candidate['geometry_score']):.2f}")
@@ -838,6 +869,11 @@ class Blinx_image_rec:
             ),
             "primary_pick_depth_fallback_geom_thresh": float(
                 getattr(self.public_class, "primary_pick_depth_fallback_geom_thresh", 0.88)
+            ),
+            "primary_pick_decision_mode": getattr(
+                self.public_class,
+                "primary_pick_decision_mode",
+                "depth_first",
             ),
         }
 

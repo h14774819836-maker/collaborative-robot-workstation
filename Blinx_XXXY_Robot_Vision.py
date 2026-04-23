@@ -34,6 +34,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
         self.setupUi(self)  # 调用UI
         self.graphics_view_init()  # graphics_view初始化
         # 绑定空格键,按空格键保存图像
+        self._display_source_pixmaps = {}
+        self._init_recognition_display_widgets()
         self.shortcut = QShortcut(Qt.Key_Space, self)
         self.shortcut.activated.connect(self.on_space_pressed)
         # 对象初始化
@@ -187,6 +189,9 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
             "joint_pos": self._normalize_pose_values(self.public_class.joint_pos),
             "new_data": self._normalize_pose_values(self.public_class.new_data),
             "brick_process_result": self._summarize_pick_result(self.public_class.brick_process_result),
+            "brick_secondary_alignment_result": self._summarize_pick_result(
+                getattr(self.public_class, "brick_secondary_alignment_result", None)
+            ),
             "last_brick_rotation_delta": getattr(self.public_class, "last_brick_rotation_delta", None),
         }
 
@@ -267,6 +272,133 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
             )
         except Exception as exc:
             print("墙砖记录器 finalize_case 失败:", exc)
+
+    def _brick_move_linear_fast(self, data):
+        self.jaka.blinx_moveL(data, self.public_class.brick_linear_speed_fast, 5000, 0)
+
+    def _brick_move_linear_pick(self, data):
+        self.jaka.blinx_moveL(data, self.public_class.brick_linear_speed_pick, 5000, 0)
+
+    def _brick_joint_move_rotate(self, data):
+        self.jaka.blinx_joint_move(
+            0,
+            data,
+            self.public_class.brick_joint_speed_rotate,
+            50,
+        )
+
+    def _brick_slider_move_to(self, position):
+        self.jaka.blinx_set_analog_output(6, 26, self.public_class.brick_slider_speed)
+        self.jaka.blinx_set_analog_output(6, 25, position)
+        self.jaka.blinx_set_digital_output(6, 5, 1)
+        self.jaka.blinx_set_digital_output(6, 4, 1)
+        self.jaka.blinx_set_digital_output(6, 4, 0)
+        self.jaka.blinx_set_digital_output(6, 5, 0)
+
+    def _brick_restart_from_primary_pick(self, reason, extra=None):
+        restart_extra = {"reason": reason}
+        if isinstance(extra, dict):
+            restart_extra.update(extra)
+        self._brick_record_event(
+            "secondary_alignment_restart_to_primary",
+            extra=restart_extra,
+        )
+        self._brick_record_finalize_case(
+            "secondary_alignment_failed_restart",
+            extra=restart_extra,
+        )
+        self.public_class.brick_process_result = None
+        self.public_class.brick_secondary_alignment_result = None
+        self.public_class.new_data = None
+        self.reset_rotation_history("brick")
+        self.public_class.brick_process_node = "3-0"
+
+    def _init_recognition_display_widgets(self):
+        self._display_source_pixmaps = {
+            "Image_Show_1": None,
+            "Image_Show_2": None,
+        }
+        for label in (self.Image_Show_1, self.Image_Show_2):
+            label.setAlignment(Qt.AlignCenter)
+            label.setScaledContents(False)
+        self._update_recognition_display_layout()
+
+    def _update_recognition_display_layout(self):
+        main_rect = self.Image_Show_1.geometry()
+        if main_rect.width() <= 0 or main_rect.height() <= 0:
+            return
+        margin = max(12, int(min(main_rect.width(), main_rect.height()) * 0.02))
+        preview_width = max(320, int(main_rect.width() * 0.38))
+        preview_width = min(preview_width, int(main_rect.width() * 0.48))
+        preview_height = max(200, int(main_rect.height() * 0.40))
+        preview_height = min(preview_height, int(main_rect.height() * 0.48))
+        self.Image_Show_2.setGeometry(
+            main_rect.x() + margin,
+            main_rect.y() + margin,
+            preview_width,
+            preview_height,
+        )
+        self.Image_Show_2.raise_()
+        self._refresh_recognition_display_widgets()
+
+    def _render_display_pixmap(self, label, pixmap):
+        if pixmap is None or pixmap.isNull():
+            label.clear()
+            return
+        target_size = label.contentsRect().size()
+        if not target_size.isValid() or target_size.width() <= 0 or target_size.height() <= 0:
+            label.setPixmap(pixmap)
+            return
+        scaled_pixmap = pixmap.scaled(
+            target_size,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation,
+        )
+        label.setAlignment(Qt.AlignCenter)
+        label.setScaledContents(False)
+        label.setPixmap(scaled_pixmap)
+
+    def _set_display_pixmap(self, label, pixmap):
+        key = label.objectName()
+        if pixmap is None or pixmap.isNull():
+            self._display_source_pixmaps[key] = None
+            label.clear()
+            return
+        self._display_source_pixmaps[key] = QPixmap(pixmap)
+        self._render_display_pixmap(label, self._display_source_pixmaps[key])
+
+    def _set_display_image(self, label, image, image_format):
+        if image is None:
+            self._set_display_pixmap(label, None)
+            return
+        image_array = np.ascontiguousarray(image)
+        if image_array.ndim < 2:
+            self._set_display_pixmap(label, None)
+            return
+        height, width = image_array.shape[:2]
+        bytes_per_line = image_array.strides[0]
+        show_image = QtGui.QImage(
+            image_array.data,
+            width,
+            height,
+            bytes_per_line,
+            image_format,
+        ).copy()
+        self._set_display_pixmap(label, QtGui.QPixmap.fromImage(show_image))
+
+    def _refresh_recognition_display_widgets(self):
+        for label_name in ("Image_Show_1", "Image_Show_2"):
+            pixmap = self._display_source_pixmaps.get(label_name)
+            if pixmap is not None:
+                self._render_display_pixmap(getattr(self, label_name), pixmap)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        QtCore.QTimer.singleShot(0, self._update_recognition_display_layout)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_recognition_display_layout()
 
     def slot_init(self):
         # 主界面按钮
@@ -473,6 +605,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                                          QtGui.QImage.Format_RGB888)  # 设置显示RGB格式,opencv默认BGR
                 self.Image_Show_1.setPixmap(QtGui.QPixmap.fromImage(showImage))  # 显示图像
                 self.Image_Show_1.setScaledContents(True)  # 图像自适应窗口大小
+                self._set_display_image(self.Image_Show_1, image_result, QtGui.QImage.Format_RGB888)
                 return result_robot
 
     # 图像识别并经过标定转换为机器人XY坐标
@@ -490,6 +623,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                                          QtGui.QImage.Format_BGR888)  # 设置显示BGR格式,opencv默认BGR
                 self.Image_Show_1.setPixmap(QtGui.QPixmap.fromImage(showImage))  # 显示图像
                 self.Image_Show_1.setScaledContents(True)  # 图像自适应窗口大小
+                self._set_display_image(self.Image_Show_1, image_result, QtGui.QImage.Format_BGR888)
                 self.image_show_enable = True  # 显示使能打开
                 return [round(point_x, 3), round(point_y, 3)]
             else:
@@ -497,6 +631,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                                          QtGui.QImage.Format_BGR888)  # 设置显示BGR格式,opencv默认BGR
                 self.Image_Show_1.setPixmap(QtGui.QPixmap.fromImage(showImage))  # 显示图像
                 self.Image_Show_1.setScaledContents(True)  # 图像自适应窗口大小
+                self._set_display_image(self.Image_Show_1, image_result, QtGui.QImage.Format_BGR888)
                 return [0, 0]
 
     # endregion
@@ -2000,10 +2135,14 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     pixmap = QtGui.QPixmap.fromImage(pixmap)
                     self.Image_Show_2.setPixmap(pixmap)
                     self.Image_Show_2.setScaledContents(True)  # 图像自适应窗口大小
+                    self._set_display_image(self.Image_Show_1, image, QtGui.QImage.Format_RGB888)
+                    self._set_display_image(self.Image_Show_2, depth_rgb, QtGui.QImage.Format_RGB888)
                     if pick_result is not None:
                         if pick_result.get("decision_status") is not None:
                             print("primary_pick decision:", pick_result.get("decision_status"),
                                   pick_result.get("decision_reason"))
+                        self._set_display_image(self.Image_Show_1, image, QtGui.QImage.Format_RGB888)
+                        self._set_display_image(self.Image_Show_2, depth_rgb, QtGui.QImage.Format_RGB888)
                         x, y, z = self.image_camera.blinx_image_to_camera(
                             pick_result["pixel_x"],
                             pick_result["pixel_y"],
@@ -2295,6 +2434,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
 
                         time.sleep(1)
                         # 进行标定转换
+                        self._set_display_image(self.Image_Show_1, image, QtGui.QImage.Format_RGB888)
+                        self._set_display_image(self.Image_Show_2, depth_rgb, QtGui.QImage.Format_RGB888)
                         test_robot_xy = np.dot(self.m_ini, [data[0], data[1], 1])  # 仿射逆变换，得到坐标（x,y)
                         data = [float(test_robot_xy[0]),
                                 float(test_robot_xy[1]),
@@ -2847,12 +2988,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
             # 控制滑轨到达指定位置
             elif self.public_class.brick_process_node == "3-0":
                 if self.public_class.new_data == None:
-                    self.jaka.blinx_set_analog_output(6, 26, 100)  # 滑轨绝对速度
-                    self.jaka.blinx_set_analog_output(6, 25, 790.58)  # 滑轨绝对位置
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 4, 1)
-                    self.jaka.blinx_set_digital_output(6, 4, 0)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
+                    self._brick_slider_move_to(790.58)
                     self.public_class.brick_process_node = "3-1"
                 else:
                     error_j1 = (float(self.public_class.new_data[0]) - float(
@@ -2869,12 +3005,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.public_class.joint_pos[5]))
                     if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                             -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                        self.jaka.blinx_set_analog_output(6, 26, 100)  # 滑轨绝对速度
-                        self.jaka.blinx_set_analog_output(6, 25, 418.63)  # 滑轨绝对位置
-                        self.jaka.blinx_set_digital_output(6, 5, 1)
-                        self.jaka.blinx_set_digital_output(6, 4, 1)
-                        self.jaka.blinx_set_digital_output(6, 4, 0)
-                        self.jaka.blinx_set_digital_output(6, 5, 0)
+                        self._brick_slider_move_to(418.63)
                         self.public_class.brick_process_node = "3-1"
             # 判断滑轨是否到达，如果到达控制机械臂到达拍照点位
             elif self.public_class.brick_process_node == "3-1":
@@ -2888,7 +3019,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     data = [float(self.public_class.identify_loc2[0]), float(self.public_class.identify_loc2[1]),
                             float(self.public_class.identify_loc2[2]), float(self.public_class.identify_loc2[3]),
                             float(self.public_class.identify_loc2[4]), float(self.public_class.identify_loc2[5])]
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_fast(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-2"
             # 判断机械臂是否达到位置，如果到达，拍摄照片进行识别并获取数据
@@ -2947,6 +3078,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                                 float(self.public_class.tcp_pos[3]),
                                 float(self.public_class.tcp_pos[4]),
                                 float(self.public_class.tcp_pos[5])]
+                        self._set_display_image(self.Image_Show_1, image, QtGui.QImage.Format_RGB888)
+                        self._set_display_image(self.Image_Show_2, depth_rgb, QtGui.QImage.Format_RGB888)
                         self._brick_record_start_case(
                             self.public_class.mech_2d_image,
                             self.public_class.mech_depth_map,
@@ -2976,7 +3109,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                                 "command_target": data,
                             },
                         )
-                        self.jaka.blinx_moveL(data, 250, 5000, 0)
+                        self._brick_move_linear_fast(data)
                         self.public_class.new_data = data
                         self.public_class.brick_process_node = "3-3-1"
                     else:
@@ -3006,7 +3139,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         command_target=data,
                         extra={"rotation_angle_deg": float(angle)},
                     )
-                    self.jaka.blinx_joint_move(0, data, 50, 50)
+                    self._brick_joint_move_rotate(data)
                     self.remember_rotation_delta("brick", angle)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-3"
@@ -3042,7 +3175,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             "depth_mm": float(self.public_class.brick_process_result["depth_mm"]),
                         },
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-4"
             # 判断机械臂是否达到位置，如果到达,打开吸盘，再控制机械臂上升
@@ -3075,7 +3208,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             "executed_pick_tcp_pose": self._normalize_pose_values(self.public_class.tcp_pos),
                         },
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-5"
             # 判断机械臂是否达到位置，如果到达,回到初始位置
@@ -3094,7 +3227,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             float(self.public_class.initial_angle[3]),
                             float(self.public_class.initial_angle[4]),
                             float(self.public_class.initial_angle[5])]
-                    self.jaka.blinx_joint_move(0, data, 50, 50)
+                    self._brick_joint_move_rotate(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-6"
             # 判断机械臂是否达到位置，如果到达,回到初始位置
@@ -3117,7 +3250,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     data = [float(self.public_class.joint_pos[0]) - 180.00, float(self.public_class.joint_pos[1]),
                             float(self.public_class.joint_pos[2]), float(self.public_class.joint_pos[3]),
                             float(self.public_class.joint_pos[4]), float(self.public_class.joint_pos[5])]
-                    self.jaka.blinx_joint_move(0, data, 50, 50)
+                    self._brick_joint_move_rotate(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-7-1"
             # # 角度是否到达，到待放置位置
@@ -3173,7 +3306,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         "secondary_positioning_approach_command",
                         command_target=data,
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_fast(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-7-2"
             # 将物料放置二次定位
@@ -3195,7 +3328,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         "secondary_positioning_descend_command",
                         command_target=data,
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-7-3"
             # 关闭吸盘，然后在控制机械臂上升
@@ -3221,7 +3354,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         command_target=data,
                         extra={"suction_state": "closed"},
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-7-4"
             # 控制机械臂到达二次拍照点位
@@ -3243,7 +3376,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         "secondary_photo_point_command",
                         command_target=data,
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_fast(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-7-5"
             # 进行拍照，对物品进行二次识别
@@ -3283,8 +3416,21 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.Image_Show_2.setPixmap(pixmap)
                         self.Image_Show_2.setScaledContents(True)  # 图像自适应窗口大小
 
+                        self._set_display_image(self.Image_Show_1, image, QtGui.QImage.Format_RGB888)
+                        self._set_display_image(self.Image_Show_2, depth_rgb, QtGui.QImage.Format_RGB888)
                         time.sleep(1)
                         if alignment_result is None:
+                            self.public_class.brick_secondary_alignment_result = None
+                            failure_extra = {
+                                "vision_decision": {
+                                    "decision_status": secondary_decision.get("decision_status"),
+                                    "source": None,
+                                    "depth_candidate": self._summarize_pick_result(
+                                        secondary_decision.get("depth_candidate")
+                                    ),
+                                    "rgb_fallback_used": bool(secondary_decision.get("rgb_fallback_used")),
+                                },
+                            }
                             self._brick_record_capture(
                                 "secondary_alignment",
                                 self.public_class.mech_2d_image,
@@ -3293,37 +3439,29 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                                 extra={
                                     "alignment_result": None,
                                     "alignment_result_detail": None,
-                                    "vision_decision": {
-                                        "decision_status": secondary_decision.get("decision_status"),
-                                        "source": None,
-                                        "depth_candidate": self._summarize_pick_result(
-                                            secondary_decision.get("depth_candidate")
-                                        ),
-                                        "rgb_fallback_used": bool(secondary_decision.get("rgb_fallback_used")),
-                                    },
+                                    **failure_extra,
                                 },
                             )
                             self._brick_record_event(
                                 "secondary_alignment_missing",
                                 extra={
                                     "reason": "二次识别未返回有效坐标",
-                                    "vision_decision": {
-                                        "decision_status": secondary_decision.get("decision_status"),
-                                        "source": None,
-                                        "depth_candidate": self._summarize_pick_result(
-                                            secondary_decision.get("depth_candidate")
-                                        ),
-                                        "rgb_fallback_used": bool(secondary_decision.get("rgb_fallback_used")),
-                                    },
+                                    **failure_extra,
                                 },
                             )
-                            raise ValueError("Secondary alignment recognition returned None")
+                            self._brick_restart_from_primary_pick(
+                                "secondary_alignment_missing",
+                                failure_extra,
+                            )
+                            print("secondary_alignment missing, restart from primary pick")
+                            return
                         print(
                             "secondary_alignment decision:",
                             secondary_decision.get("decision_status"),
                             "source:",
                             alignment_result.get("source"),
                         )
+                        self.public_class.brick_secondary_alignment_result = alignment_result
                         # 进行标定转换
                         test_robot_xy = np.dot(
                             self.m_ini,
@@ -3376,11 +3514,74 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                                 },
                             },
                         )
-                        self.jaka.blinx_moveL(data, 250, 5000, 0)
+                        self._brick_move_linear_fast(data)
                         self.public_class.new_data = data
-                        self.public_class.brick_process_node = "3-7-6"
+                        self.public_class.brick_process_node = "3-7-5-1"
                     except Exception as e:
                         print(e)
+                        self._brick_restart_from_primary_pick(
+                            "secondary_alignment_exception",
+                            {"exception": str(e)},
+                        )
+                        return
+            # 二次识别到目标上方后，按角度补一次旋转
+            elif self.public_class.brick_process_node == "3-7-5-1":
+                error_x = (float(self.public_class.new_data[0]) - float(
+                    self.public_class.tcp_pos[0]))
+                error_y = (float(self.public_class.new_data[1]) - float(
+                    self.public_class.tcp_pos[1]))
+                error_z = (float(self.public_class.new_data[2]) - float(
+                    self.public_class.tcp_pos[2]))
+                if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
+                    alignment_result = getattr(self.public_class, "brick_secondary_alignment_result", None)
+                    if not isinstance(alignment_result, dict) or alignment_result.get("angle_deg") is None:
+                        self._brick_record_event(
+                            "secondary_rotation_skipped",
+                            extra={
+                                "reason": "secondary_alignment_angle_missing",
+                                "alignment_result_detail": self._summarize_pick_result(alignment_result),
+                            },
+                        )
+                        self.public_class.brick_process_node = "3-7-6"
+                    else:
+                        angle = self.select_shortest_rotation_delta(
+                            "brick",
+                            alignment_result["angle_deg"],
+                        )
+                        data = [float(self.public_class.joint_pos[0]), float(self.public_class.joint_pos[1]),
+                                float(self.public_class.joint_pos[2]), float(self.public_class.joint_pos[3]),
+                                float(self.public_class.joint_pos[4]), float(self.public_class.joint_pos[5]) + angle]
+                        self._brick_record_event(
+                            "secondary_rotation_command",
+                            command_target=data,
+                            extra={
+                                "rotation_angle_deg": float(angle),
+                                "alignment_angle_deg": float(alignment_result["angle_deg"]),
+                                "alignment_result_detail": self._summarize_pick_result(alignment_result),
+                            },
+                        )
+                        self._brick_joint_move_rotate(data)
+                        self.remember_rotation_delta("brick", angle)
+                        self.public_class.new_data = data
+                        self.public_class.brick_process_node = "3-7-5-2"
+            # 二次旋转完成后，再进入下降取砖
+            elif self.public_class.brick_process_node == "3-7-5-2":
+                error_j1 = (float(self.public_class.new_data[0]) - float(
+                    self.public_class.joint_pos[0]))
+                error_j2 = (float(self.public_class.new_data[1]) - float(
+                    self.public_class.joint_pos[1]))
+                error_j3 = (float(self.public_class.new_data[2]) - float(
+                    self.public_class.joint_pos[2]))
+                error_j4 = (float(self.public_class.new_data[3]) - float(
+                    self.public_class.joint_pos[3]))
+                error_j5 = (float(self.public_class.new_data[4]) - float(
+                    self.public_class.joint_pos[4]))
+                error_j6 = (float(self.public_class.new_data[5]) - float(
+                    self.public_class.joint_pos[5]))
+                if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
+                        -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
+                    self.public_class.new_data = self._normalize_pose_values(self.public_class.tcp_pos)
+                    self.public_class.brick_process_node = "3-7-6"
             # 控制Z轴下降
             elif self.public_class.brick_process_node == "3-7-6":
                 error_x = (float(self.public_class.new_data[0]) - float(
@@ -3400,7 +3601,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         "secondary_descend_command",
                         command_target=data,
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-7-7"
             # 打开吸盘，控制Z轴上升
@@ -3432,7 +3633,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             "executed_secondary_pick_tcp_pose": self._normalize_pose_values(self.public_class.tcp_pos),
                         },
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-8"
 
@@ -3530,7 +3731,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             command_target=data,
                             extra={"brick_process_num": int(self.public_class.brick_process_num)},
                         )
-                        self.jaka.blinx_moveL(data, 250, 5000, 0)
+                        self._brick_move_linear_fast(data)
                         self.public_class.new_data = data
                         self.public_class.brick_process_node = "3-9"
                     else:
@@ -3555,7 +3756,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         "place_descend_command",
                         command_target=data,
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-10"
             # 判断机械臂是否达到位置，如果到达，关闭吸盘，Z轴上升
@@ -3581,7 +3782,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         command_target=data,
                         extra={"suction_state": "closed"},
                     )
-                    self.jaka.blinx_moveL(data, 250, 5000, 0)
+                    self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-11"
             # 判断机械臂是否达到位置，如果到达，回到转180位置
@@ -3598,7 +3799,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             float(self.public_class.initial_angle[1]),
                             float(self.public_class.initial_angle[2]), float(self.public_class.initial_angle[3]),
                             float(self.public_class.initial_angle[4]), float(self.public_class.initial_angle[5])]
-                    self.jaka.blinx_joint_move(0, data, 50, 50)
+                    self._brick_joint_move_rotate(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-12"
             # 角度是否到达，如果到达再回到初始姿态
@@ -3622,7 +3823,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             float(self.public_class.initial_angle[1]),
                             float(self.public_class.initial_angle[2]), float(self.public_class.initial_angle[3]),
                             float(self.public_class.initial_angle[4]), float(self.public_class.initial_angle[5])]
-                    self.jaka.blinx_joint_move(0, data, 50, 50)
+                    self._brick_joint_move_rotate(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-13"
 
@@ -3658,7 +3859,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         data = [float(self.public_class.identify_loc1[0]), float(self.public_class.identify_loc1[1]),
                                 float(self.public_class.identify_loc1[2]), float(self.public_class.identify_loc1[3]),
                                 float(self.public_class.identify_loc1[4]), float(self.public_class.identify_loc1[5])]
-                        self.jaka.blinx_moveL(data, 250, 5000, 0)
+                        self._brick_move_linear_fast(data)
                         self._brick_record_finalize_case(
                             "brick_process_complete",
                             extra={"return_target": data},
@@ -3668,6 +3869,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.public_class.brick_process_node = "0-0"  # 墙砖流程节点
                         self.public_class.brick_process_num = 0  # 墙砖抓取次数
                         self.public_class.brick_process_result = None
+                        self.public_class.brick_secondary_alignment_result = None
                         if self.brick_process_recorder is not None:
                             self.textEdit_log.append(
                                 f"墙砖记录完成: {self.brick_process_recorder.session_dir}\n"
@@ -4152,6 +4354,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.Image_Show_2.setScaledContents(True)  # 图像自适应窗口大小
 
                         # 将数据进行Y方向的排序
+                        self._set_display_image(self.Image_Show_1, img_rec, QtGui.QImage.Format_RGB888)
+                        self._set_display_image(self.Image_Show_2, depth_rgb, QtGui.QImage.Format_RGB888)
                         sorted_data = sorted(data_list, key=lambda x: x[1], reverse=True)
                         print(sorted_data)
                         # 将识别数据保存到公共类中
@@ -4603,6 +4807,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
             self.public_class.brick_process_node = "0-0"  # 墙砖流程节点
             self.public_class.brick_process_num = 0  # 墙砖抓取次数
             self.public_class.brick_process_result = None
+            self.public_class.brick_secondary_alignment_result = None
             self.reset_rotation_history("brick")
             self._start_brick_process_recording_session()
         else:
