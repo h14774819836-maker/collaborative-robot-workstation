@@ -640,7 +640,7 @@ QPushButton:pressed
          </font>
         </property>
         <property name="text">
-         <string>吸盘：</string>
+         <string>夹爪：</string>
         </property>
        </widget>
        <widget class="QLabel" name="label_12">
@@ -1663,7 +1663,7 @@ QPushButton:pressed
             </font>
            </property>
            <property name="text">
-            <string>吸 盘：</string>
+            <string>夹 爪：</string>
            </property>
           </widget>
          </item>
@@ -1916,7 +1916,7 @@ QPushButton:pressed
 </string>
            </property>
            <property name="text">
-            <string>关闭</string>
+            <string>松开</string>
            </property>
           </widget>
          </item>
@@ -1949,7 +1949,7 @@ QPushButton:pressed
 </string>
            </property>
            <property name="text">
-            <string>打开</string>
+            <string>夹紧</string>
            </property>
           </widget>
          </item>

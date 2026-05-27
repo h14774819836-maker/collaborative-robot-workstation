@@ -287,6 +287,67 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
             50,
         )
 
+    def _as_optional_float(self, value):
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _get_gripper_pick_j6_angle(self):
+        for attr_name in ("gripper_pick_above_j6_angle", "sucker_pick_above_j6_angle"):
+            angle = self._as_optional_float(getattr(self.public_class, attr_name, None))
+            if angle is not None:
+                return angle
+
+        base_angle = None
+        initial_angle = getattr(self.public_class, "initial_angle", None)
+        if initial_angle is not None and len(initial_angle) > 5:
+            base_angle = self._as_optional_float(initial_angle[5])
+        if base_angle is None and len(getattr(self.public_class, "joint_pos", [])) > 5:
+            base_angle = self._as_optional_float(self.public_class.joint_pos[5])
+        if base_angle is None:
+            return None
+
+        delta = self._as_optional_float(getattr(self.public_class, "gripper_pick_j6_delta", 180.0))
+        if delta is None:
+            delta = 180.0
+        return base_angle + delta
+
+    def _get_sucker_pick_j6_angle(self):
+        return self._get_gripper_pick_j6_angle()
+
+    def _gripper_tool_station_pose(self, offset_name):
+        base_pose = getattr(self.public_class, "gripper_actuator_loc", None)
+        if not base_pose:
+            base_pose = self.public_class.sucker_actuator_loc
+        pose = [float(base_pose[index]) for index in range(6)]
+        offset = getattr(self.public_class, offset_name, [0, 0, 0])
+        for index, value in enumerate(offset):
+            if index >= 6:
+                break
+            pose[index] += float(value)
+        return pose
+
+    def _set_end_effector_output(self, index, value, delay=0.2):
+        self.jaka.blinx_set_digital_output(6, 5, 1)
+        self.jaka.blinx_set_digital_output(6, index, value)
+        time.sleep(delay)
+        self.jaka.blinx_set_digital_output(6, 5, 0)
+
+    def _gripper_close(self):
+        self._set_end_effector_output(6, 1)
+
+    def _gripper_open(self):
+        self._set_end_effector_output(6, 0)
+
+    def _quick_change_open(self, delay=0.5):
+        self._set_end_effector_output(8, 1, delay=delay)
+
+    def _quick_change_close(self, delay=0.5):
+        self._set_end_effector_output(8, 0, delay=delay)
+
     def _brick_slider_move_to(self, position):
         self.jaka.blinx_set_analog_output(6, 26, self.public_class.brick_slider_speed)
         self.jaka.blinx_set_analog_output(6, 25, position)
@@ -407,8 +468,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
         self.btn_calibrate.clicked.connect(self.btn_calibrate_click)
 
         # 末端执行器
-        self.btn_suction_get.clicked.connect(self.blinx_btn_suction_get)   # 吸盘取
-        self.btn_suction_set.clicked.connect(self.blinx_btn_suction_set)   # 吸盘放
+        self.btn_suction_get.clicked.connect(self.blinx_btn_suction_get)   # 夹爪取
+        self.btn_suction_set.clicked.connect(self.blinx_btn_suction_set)   # 夹爪放
         self.btn_bundle_get.clicked.connect(self.blinx_btn_bundle_get)   # 捆扎机取
         self.btn_bundle_set.clicked.connect(self.blinx_btn_bundle_set)   # 捆扎机放
 
@@ -476,7 +537,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
         # 扎丝机开/关
         self.btn_zsj_open.clicked.connect(self.btn_zsj_open_click)
         self.btn_zsj_close.clicked.connect(self.btn_zsj_close_click)
-        # 吸盘打开/关闭
+        # 气动夹爪夹紧/松开
         self.btn_xipan_open.clicked.connect(self.btn_xipan_open_click)
         self.btn_xipan_close.clicked.connect(self.btn_xipan_close_click)
         # 快换打开/关闭
@@ -879,27 +940,27 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
 
     # region 流程定时器逻辑
     def blinx_timer_process(self):
-        # 判断是否是吸盘取放功能
+        # 判断是否是夹爪取放功能
         if self.public_class.sucker_state:
-            # 判断吸盘是取还是放
+            # 判断夹爪是取还是放
             if self.public_class.sucker_type == 0:   # 如果类别是取
                 # 判断执行器放置区域
                 if self.public_class.sucker_process == "0-0":
                     # 获取机械臂控制器的数字输入信号
                     self.jaka.blinx_get_digital_input_status()
                     time.sleep(0.5)
-                    # 将吸盘捆扎机的放置区的状态提出
+                    # 将夹爪捆扎机的放置区的状态提出
                     xp_state = self.robot_DI_1
                     kzj_state = self.robot_DI_2
-                    # 判断吸盘与捆扎机是否都在
+                    # 判断夹爪与捆扎机是否都在
                     if xp_state == 1 and kzj_state == 1:
                         self.public_class.sucker_process = "1-0"
-                    # 判断如果吸盘在捆扎机不在
+                    # 判断如果夹爪在捆扎机不在
                     elif xp_state == 1 and kzj_state != 1:
                         print("提示捆扎机在末端的提示语")
-                    # 判断如果捆扎机在，吸盘不在
+                    # 判断如果捆扎机在，夹爪不在
                     elif xp_state != 1 and kzj_state == 1:
-                        print("提示吸盘已在末端上")
+                        print("提示夹爪已在末端上")
                     # 如果两个都不在
                     elif xp_state != 1 and kzj_state != 1:
                         print("报警，请将末端执行器归位")
@@ -911,8 +972,32 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             float(self.public_class.joint_pos[4]), float(self.public_class.joint_pos[5])]
                     self.jaka.blinx_joint_move(0, data, 50, 50)
                     self.public_class.new_data = data
-                    self.public_class.sucker_process = "1-2"
-                # 角度是否到达，如果到达控制机械臂到达吸盘上方
+                    self.public_class.sucker_process = "1-1"
+                # 角度是否到达，如果到达控制J6到取夹爪上方角度
+                elif self.public_class.sucker_process == "1-1":
+                    error_j1 = (float(self.public_class.new_data[0]) - float(
+                        self.public_class.joint_pos[0]))
+                    error_j2 = (float(self.public_class.new_data[1]) - float(
+                        self.public_class.joint_pos[1]))
+                    error_j3 = (float(self.public_class.new_data[2]) - float(
+                        self.public_class.joint_pos[2]))
+                    error_j4 = (float(self.public_class.new_data[3]) - float(
+                        self.public_class.joint_pos[3]))
+                    error_j5 = (float(self.public_class.new_data[4]) - float(
+                        self.public_class.joint_pos[4]))
+                    error_j6 = (float(self.public_class.new_data[5]) - float(
+                        self.public_class.joint_pos[5]))
+                    if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
+                            -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
+                        sucker_pick_above_j6_angle = self._get_sucker_pick_j6_angle()
+                        if sucker_pick_above_j6_angle is not None:
+                            data = [float(self.public_class.joint_pos[0]), float(self.public_class.joint_pos[1]),
+                                    float(self.public_class.joint_pos[2]), float(self.public_class.joint_pos[3]),
+                                    float(self.public_class.joint_pos[4]), sucker_pick_above_j6_angle]
+                            self.jaka.blinx_joint_move(0, data, 50, 50)
+                            self.public_class.new_data = data
+                        self.public_class.sucker_process = "1-2"
+                # 角度是否到达，如果到达控制机械臂到达夹爪上方
                 elif self.public_class.sucker_process == "1-2":
                     error_j1 = (float(self.public_class.new_data[0]) - float(
                         self.public_class.joint_pos[0]))
@@ -928,17 +1013,12 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.public_class.joint_pos[5]))
                     if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                             -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                        # 控制机械臂到达吸盘上方
-                        data = [float(self.public_class.sucker_actuator_loc[0]),
-                                float(self.public_class.sucker_actuator_loc[1]),
-                                float(self.public_class.sucker_actuator_loc[2]) + 30.00,
-                                float(self.public_class.sucker_actuator_loc[3]),
-                                float(self.public_class.sucker_actuator_loc[4]),
-                                float(self.public_class.sucker_actuator_loc[5])]
+                        # 控制机械臂到达夹爪工具上方
+                        data = self._gripper_tool_station_pose("gripper_pick_approach_offset")
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-3"
-                # 判断坐标是否到达，如果到达先打开快换夹具，在控制机械臂到达吸盘位置
+                # 判断坐标是否到达，如果到达先打开快换夹具，在控制机械臂到达夹爪位置
                 elif self.public_class.sucker_process == "1-3":
                     error_x = (float(self.public_class.new_data[0]) - float(
                         self.public_class.tcp_pos[0]))
@@ -948,17 +1028,9 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.public_class.tcp_pos[2]))
                     if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
                         # 快换夹具开
-                        self.jaka.blinx_set_digital_output(6, 5, 1)
-                        self.jaka.blinx_set_digital_output(6, 8, 1)
-                        time.sleep(0.5)
-                        self.jaka.blinx_set_digital_output(6, 5, 0)
-                        # 控制机械臂到达吸盘位置
-                        data = [float(self.public_class.sucker_actuator_loc[0]),
-                                float(self.public_class.sucker_actuator_loc[1]),
-                                float(self.public_class.sucker_actuator_loc[2]),
-                                float(self.public_class.sucker_actuator_loc[3]),
-                                float(self.public_class.sucker_actuator_loc[4]),
-                                float(self.public_class.sucker_actuator_loc[5])]
+                        self._quick_change_open()
+                        # 控制机械臂到达夹爪工具位置
+                        data = self._gripper_tool_station_pose("gripper_pick_dock_offset")
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-4"
@@ -971,18 +1043,10 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     error_z = (float(self.public_class.new_data[2]) - float(
                         self.public_class.tcp_pos[2]))
                     if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                        # 快换夹具开
-                        self.jaka.blinx_set_digital_output(6, 5, 1)
-                        self.jaka.blinx_set_digital_output(6, 8, 0)
-                        time.sleep(0.5)
-                        self.jaka.blinx_set_digital_output(6, 5, 0)
-                        # 控制机械臂到达吸盘位置
-                        data = [float(self.public_class.tcp_pos[0]),
-                                float(self.public_class.tcp_pos[1]),
-                                float(self.public_class.tcp_pos[2] + 10.00),
-                                float(self.public_class.tcp_pos[3]),
-                                float(self.public_class.tcp_pos[4]),
-                                float(self.public_class.tcp_pos[5])]
+                        # 快换夹具吸合
+                        self._quick_change_close()
+                        # 控制机械臂抬起夹爪工具
+                        data = self._gripper_tool_station_pose("gripper_pick_lift_offset")
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-5"
@@ -995,13 +1059,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     error_z = (float(self.public_class.new_data[2]) - float(
                         self.public_class.tcp_pos[2]))
                     if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                        # 控制机械臂退出吸盘放置位置
-                        data = [float(self.public_class.tcp_pos[0]),
-                                float(self.public_class.tcp_pos[1] + 100.00),
-                                float(self.public_class.tcp_pos[2]),
-                                float(self.public_class.tcp_pos[3]),
-                                float(self.public_class.tcp_pos[4]),
-                                float(self.public_class.tcp_pos[5])]
+                        # 控制机械臂退出夹爪工具库位
+                        data = self._gripper_tool_station_pose("gripper_pick_exit_offset")
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-6"
@@ -1020,7 +1079,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.jaka.blinx_joint_move(0, data, 50, 50)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-7"
-                # 角度是否到达，如果到达控制机械臂到达吸盘上方
+                # 角度是否到达，如果到达控制机械臂到达夹爪上方
                 elif self.public_class.sucker_process == "1-7":
                     error_j1 = (float(self.public_class.new_data[0]) - float(
                         self.public_class.joint_pos[0]))
@@ -1045,7 +1104,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             self.jaka.blinx_joint_move(0, data, 50, 50)
                             self.public_class.new_data = data
                             self.public_class.sucker_process = "1-8"
-                # 角度是否到达，如果到达控制机械臂到达吸盘上方
+                # 角度是否到达，如果到达控制机械臂到达夹爪上方
                 elif self.public_class.sucker_process == "1-8":
                     error_j1 = (float(self.public_class.new_data[0]) - float(
                         self.public_class.joint_pos[0]))
@@ -1079,16 +1138,16 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     # 获取机械臂控制器的数字输入信号
                     self.jaka.blinx_get_digital_input_status()
                     time.sleep(0.5)
-                    # 将吸盘捆扎机的放置区的状态提出
+                    # 将夹爪捆扎机的放置区的状态提出
                     xp_state = self.robot_DI_1
                     kzj_state = self.robot_DI_2
-                    # 判断吸盘与捆扎机是否都在
+                    # 判断夹爪与捆扎机是否都在
                     if xp_state == 1 and kzj_state == 1:
-                        print("吸盘已在放置区")
-                    # 判断如果吸盘在捆扎机不在
+                        print("夹爪已在放置区")
+                    # 判断如果夹爪在捆扎机不在
                     elif xp_state == 1 and kzj_state != 1:
                         print("提示目前末端是捆扎机")
-                    # 判断如果捆扎机在，吸盘不在
+                    # 判断如果捆扎机在，夹爪不在
                     elif xp_state != 1 and kzj_state == 1:
                         self.public_class.sucker_process = "1-0"
                     # 如果两个都不在
@@ -1102,7 +1161,31 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             float(self.public_class.joint_pos[4]), float(self.public_class.joint_pos[5])]
                     self.jaka.blinx_joint_move(0, data, 50, 50)
                     self.public_class.new_data = data
-                    self.public_class.sucker_process = "1-2"
+                    self.public_class.sucker_process = "1-1"
+                # 角度是否到达，如果到达控制J6到夹爪IO接口对接角度
+                elif self.public_class.sucker_process == "1-1":
+                    error_j1 = (float(self.public_class.new_data[0]) - float(
+                        self.public_class.joint_pos[0]))
+                    error_j2 = (float(self.public_class.new_data[1]) - float(
+                        self.public_class.joint_pos[1]))
+                    error_j3 = (float(self.public_class.new_data[2]) - float(
+                        self.public_class.joint_pos[2]))
+                    error_j4 = (float(self.public_class.new_data[3]) - float(
+                        self.public_class.joint_pos[3]))
+                    error_j5 = (float(self.public_class.new_data[4]) - float(
+                        self.public_class.joint_pos[4]))
+                    error_j6 = (float(self.public_class.new_data[5]) - float(
+                        self.public_class.joint_pos[5]))
+                    if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
+                            -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
+                        gripper_pick_above_j6_angle = self._get_gripper_pick_j6_angle()
+                        if gripper_pick_above_j6_angle is not None:
+                            data = [float(self.public_class.joint_pos[0]), float(self.public_class.joint_pos[1]),
+                                    float(self.public_class.joint_pos[2]), float(self.public_class.joint_pos[3]),
+                                    float(self.public_class.joint_pos[4]), gripper_pick_above_j6_angle]
+                            self.jaka.blinx_joint_move(0, data, 50, 50)
+                            self.public_class.new_data = data
+                        self.public_class.sucker_process = "1-2"
                 # 角度是否到达，如果到达控制机械臂待放置位置
                 elif self.public_class.sucker_process == "1-2":
                     error_j1 = (float(self.public_class.new_data[0]) - float(
@@ -1119,17 +1202,12 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.public_class.joint_pos[5]))
                     if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                             -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                        # 控制机械臂待放置位置
-                        data = [float(self.public_class.sucker_actuator_loc[0]),
-                                float(self.public_class.sucker_actuator_loc[1]) + 100.00,
-                                float(self.public_class.sucker_actuator_loc[2]) + 10.00,
-                                float(self.public_class.sucker_actuator_loc[3]),
-                                float(self.public_class.sucker_actuator_loc[4]),
-                                float(self.public_class.sucker_actuator_loc[5])]
+                        # 控制机械臂到达夹爪工具待放置位置
+                        data = self._gripper_tool_station_pose("gripper_place_approach_offset")
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-3"
-                # 判断坐标是否到达，如果到达先控制机械臂到达吸盘放置区位置上一公分位置
+                # 判断坐标是否到达，如果到达先控制机械臂到达夹爪放置区位置上一公分位置
                 elif self.public_class.sucker_process == "1-3":
                     error_x = (float(self.public_class.new_data[0]) - float(
                         self.public_class.tcp_pos[0]))
@@ -1138,13 +1216,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     error_z = (float(self.public_class.new_data[2]) - float(
                         self.public_class.tcp_pos[2]))
                     if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                        # 控制机械臂到达吸盘位置
-                        data = [float(self.public_class.tcp_pos[0]),
-                                float(self.public_class.tcp_pos[1]) - 100.00,
-                                float(self.public_class.tcp_pos[2]),
-                                float(self.public_class.tcp_pos[3]),
-                                float(self.public_class.tcp_pos[4]),
-                                float(self.public_class.tcp_pos[5])]
+                        # 控制机械臂到达夹爪工具放置预备位置
+                        data = self._gripper_tool_station_pose("gripper_place_pre_release_offset")
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-4"
@@ -1157,22 +1230,14 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     error_z = (float(self.public_class.new_data[2]) - float(
                         self.public_class.tcp_pos[2]))
                     if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                        # 控制机械臂到达吸盘位置
-                        data = [float(self.public_class.tcp_pos[0]),
-                                float(self.public_class.tcp_pos[1]),
-                                float(self.public_class.tcp_pos[2]) - 10.00,
-                                float(self.public_class.tcp_pos[3]),
-                                float(self.public_class.tcp_pos[4]),
-                                float(self.public_class.tcp_pos[5])]
+                        # 控制机械臂到达夹爪工具放置位置
+                        data = self._gripper_tool_station_pose("gripper_place_dock_offset")
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-5"
                         time.sleep(1)
                         # 快换夹具释放
-                        self.jaka.blinx_set_digital_output(6, 5, 1)
-                        self.jaka.blinx_set_digital_output(6, 8, 1)
-                        time.sleep(0.5)
-                        self.jaka.blinx_set_digital_output(6, 5, 0)
+                        self._quick_change_open()
                 # 判断坐标是否到达，如果到达控制z轴上升
                 elif self.public_class.sucker_process == "1-5":
                     error_x = (float(self.public_class.new_data[0]) - float(
@@ -1182,13 +1247,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     error_z = (float(self.public_class.new_data[2]) - float(
                         self.public_class.tcp_pos[2]))
                     if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                        # 控制机械臂退出吸盘放置位置
-                        data = [float(self.public_class.tcp_pos[0]),
-                                float(self.public_class.tcp_pos[1]),
-                                float(self.public_class.tcp_pos[2] + 30.00),
-                                float(self.public_class.tcp_pos[3]),
-                                float(self.public_class.tcp_pos[4]),
-                                float(self.public_class.tcp_pos[5])]
+                        # 控制机械臂退出夹爪工具库位
+                        data = self._gripper_tool_station_pose("gripper_place_lift_offset")
                         self.jaka.blinx_moveL(data, 250, 5000, 0)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-6"
@@ -1233,7 +1293,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.jaka.blinx_joint_move(0, data, 50, 50)
                         self.public_class.new_data = data
                         self.public_class.sucker_process = "1-8"
-                # 角度是否到达，如果到达控制机械臂到达吸盘上方
+                # 角度是否到达，如果到达控制机械臂到达夹爪上方
                 elif self.public_class.sucker_process == "1-8":
                     error_j1 = (float(self.public_class.new_data[0]) - float(
                         self.public_class.joint_pos[0]))
@@ -1270,19 +1330,19 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     # 获取机械臂控制器的数字输入信号
                     self.jaka.blinx_get_digital_input_status()
                     time.sleep(0.5)
-                    # 将吸盘捆扎机的放置区的状态提出
+                    # 将夹爪捆扎机的放置区的状态提出
                     xp_state = self.robot_DI_1
                     kzj_state = self.robot_DI_2
-                    # 判断吸盘与捆扎机是否都在
+                    # 判断夹爪与捆扎机是否都在
                     if xp_state == 1 and kzj_state == 1:
                         self.public_class.bundle_process = "1-0"
-                    # 判断如果吸盘在捆扎机不在
+                    # 判断如果夹爪在捆扎机不在
                     elif xp_state == 1 and kzj_state != 1:
                         print("提示捆扎机在末端的提示语")
                         self.public_class.bundle_state = False
-                    # 判断如果捆扎机在，吸盘不在
+                    # 判断如果捆扎机在，夹爪不在
                     elif xp_state != 1 and kzj_state == 1:
-                        print("提示吸盘在末端上")
+                        print("提示夹爪在末端上")
                         self.public_class.bundle_state = False
                     # 如果两个都不在
                     elif xp_state != 1 and kzj_state != 1:
@@ -1384,7 +1444,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.jaka.blinx_set_digital_output(6, 8, 0)
                         time.sleep(0.5)
                         self.jaka.blinx_set_digital_output(6, 5, 0)
-                        # 控制机械臂到达吸盘位置
+                        # 控制机械臂到达夹爪位置
                         data = [float(self.public_class.tcp_pos[0]),
                                 float(self.public_class.tcp_pos[1]),
                                 float(self.public_class.tcp_pos[2] + 10.00),
@@ -1403,7 +1463,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     error_z = (float(self.public_class.new_data[2]) - float(
                         self.public_class.tcp_pos[2]))
                     if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                        # 控制机械臂退出吸盘放置位置
+                        # 控制机械臂退出夹爪放置位置
                         data = [float(self.public_class.tcp_pos[0]),
                                 float(self.public_class.tcp_pos[1] + 100.00),
                                 float(self.public_class.tcp_pos[2]),
@@ -1509,19 +1569,19 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     # 获取机械臂控制器的数字输入信号
                     self.jaka.blinx_get_digital_input_status()
                     time.sleep(0.5)
-                    # 将吸盘捆扎机的放置区的状态提出
+                    # 将夹爪捆扎机的放置区的状态提出
                     xp_state = 1  # self.robot_DI_1
                     kzj_state = 0  # self.robot_DI_2
-                    # 判断吸盘与捆扎机是否都在
+                    # 判断夹爪与捆扎机是否都在
                     if xp_state == 1 and kzj_state == 1:
                         print("捆扎机已在放置区")
                         self.public_class.sucker_state = False
-                    # 判断如果吸盘在捆扎机不在
+                    # 判断如果夹爪在捆扎机不在
                     elif xp_state == 1 and kzj_state != 1:
                         self.public_class.bundle_process = "1-0"
-                    # 判断如果捆扎机在，吸盘不在
+                    # 判断如果捆扎机在，夹爪不在
                     elif xp_state != 1 and kzj_state == 1:
-                        print("提示目前末端是吸盘")
+                        print("提示目前末端是夹爪")
                         self.public_class.sucker_state = False
                     # 如果两个都不在
                     elif xp_state != 1 and kzj_state != 1:
@@ -1529,7 +1589,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                         self.public_class.sucker_state = False
                 # 控制机械臂到达过度点位
                 elif self.public_class.bundle_process == "1-0":
-                    # 控制机械臂到达吸盘位置
+                    # 控制机械臂到达夹爪位置
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1]) - 50.00,
                             float(self.public_class.tcp_pos[2]),
@@ -1712,18 +1772,18 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 # 获取机械臂控制器的数字输入信号
                 self.jaka.blinx_get_digital_input_status()
                 time.sleep(0.5)
-                # 将吸盘捆扎机的放置区的状态提出
+                # 将夹爪捆扎机的放置区的状态提出
                 xp_state = self.robot_DI_1
                 kzj_state = self.robot_DI_2
-                # 判断吸盘与捆扎机是否都在
+                # 判断夹爪与捆扎机是否都在
                 if xp_state == 1 and kzj_state == 1:
                     self.public_class.ceramic_process_node = "1-0"  # 如果两个末端执行器都x2在
-                # 判断如果吸盘在捆扎机不在
+                # 判断如果夹爪在捆扎机不在
                 elif xp_state == 1 and kzj_state != 1:
-                    self.public_class.ceramic_process_node = "2-0"  # 如果是吸盘就直接开始下一步
-                # 判断如果捆扎机在，吸盘不在
+                    self.public_class.ceramic_process_node = "2-0"  # 如果是夹爪就直接开始下一步
+                # 判断如果捆扎机在，夹爪不在
                 elif xp_state != 1 and kzj_state == 1:
-                    self.public_class.ceramic_process_node = "3-0"  # 需先放置捆扎机，在获取吸盘
+                    self.public_class.ceramic_process_node = "3-0"  # 需先放置捆扎机，在获取夹爪
                 # 如果两个都不在
                 elif xp_state != 1 and kzj_state != 1:
                     print("报警，请将末端执行器归位")
@@ -1752,14 +1812,17 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.joint_pos[5]))
                 if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                         -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                    # 控制末端移动90度
+                    # 控制末端到取夹爪上方J6角度
+                    sucker_pick_above_j6_angle = self._get_sucker_pick_j6_angle()
+                    if sucker_pick_above_j6_angle is None:
+                        sucker_pick_above_j6_angle = float(self.public_class.joint_pos[5]) + 90.00
                     data = [float(self.public_class.joint_pos[0]), float(self.public_class.joint_pos[1]),
                             float(self.public_class.joint_pos[2]), float(self.public_class.joint_pos[3]),
-                            float(self.public_class.joint_pos[4]), float(self.public_class.joint_pos[5]) + 90.00]
+                            float(self.public_class.joint_pos[4]), sucker_pick_above_j6_angle]
                     self.jaka.blinx_joint_move(0, data, 50, 50)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "1-2"
-            # 角度是否到达，如果到达控制机械臂到达吸盘上方
+            # 角度是否到达，如果到达控制机械臂到达夹爪上方
             elif self.public_class.ceramic_process_node == "1-2":
                 error_j1 = (float(self.public_class.new_data[0]) - float(
                     self.public_class.joint_pos[0]))
@@ -1775,17 +1838,12 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.joint_pos[5]))
                 if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                         -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                    # 控制机械臂到达吸盘上方
-                    data = [float(self.public_class.sucker_actuator_loc[0]),
-                            float(self.public_class.sucker_actuator_loc[1]),
-                            float(self.public_class.sucker_actuator_loc[2]) + 30.00,
-                            float(self.public_class.sucker_actuator_loc[3]),
-                            float(self.public_class.sucker_actuator_loc[4]),
-                            float(self.public_class.sucker_actuator_loc[5])]
+                    # 控制机械臂到达夹爪工具上方
+                    data = self._gripper_tool_station_pose("gripper_pick_approach_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "1-3"
-            # 判断坐标是否到达，如果到达先打开快换夹具，在控制机械臂到达吸盘位置
+            # 判断坐标是否到达，如果到达先打开快换夹具，在控制机械臂到达夹爪位置
             elif self.public_class.ceramic_process_node == "1-3":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -1795,17 +1853,9 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
                     # 快换夹具开
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 8, 1)
-                    time.sleep(0.5)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
-                    # 控制机械臂到达吸盘位置
-                    data = [float(self.public_class.sucker_actuator_loc[0]),
-                            float(self.public_class.sucker_actuator_loc[1]),
-                            float(self.public_class.sucker_actuator_loc[2]),
-                            float(self.public_class.sucker_actuator_loc[3]),
-                            float(self.public_class.sucker_actuator_loc[4]),
-                            float(self.public_class.sucker_actuator_loc[5])]
+                    self._quick_change_open()
+                    # 控制机械臂到达夹爪工具位置
+                    data = self._gripper_tool_station_pose("gripper_pick_dock_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "1-4"
@@ -1818,18 +1868,10 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 快换夹具开
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 8, 0)
-                    time.sleep(0.5)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
-                    # 控制机械臂到达吸盘位置
-                    data = [float(self.public_class.tcp_pos[0]),
-                            float(self.public_class.tcp_pos[1]),
-                            float(self.public_class.tcp_pos[2] + 10.00),
-                            float(self.public_class.tcp_pos[3]),
-                            float(self.public_class.tcp_pos[4]),
-                            float(self.public_class.tcp_pos[5])]
+                    # 快换夹具吸合
+                    self._quick_change_close()
+                    # 控制机械臂抬起夹爪工具
+                    data = self._gripper_tool_station_pose("gripper_pick_lift_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "1-5"
@@ -1842,13 +1884,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 控制机械臂退出吸盘放置位置
-                    data = [float(self.public_class.tcp_pos[0]),
-                            float(self.public_class.tcp_pos[1] + 100.00),
-                            float(self.public_class.tcp_pos[2]),
-                            float(self.public_class.tcp_pos[3]),
-                            float(self.public_class.tcp_pos[4]),
-                            float(self.public_class.tcp_pos[5])]
+                    # 控制机械臂退出夹爪工具库位
+                    data = self._gripper_tool_station_pose("gripper_pick_exit_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "1-6"
@@ -1868,7 +1905,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_joint_move(0, data, 50, 50)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "1-7"
-            # 角度是否到达，如果到达控制机械臂到达吸盘上方
+            # 角度是否到达，如果到达控制机械臂到达夹爪上方
             elif self.public_class.ceramic_process_node == "1-7":
                 error_j1 = (float(self.public_class.new_data[0]) - float(
                     self.public_class.joint_pos[0]))
@@ -1893,7 +1930,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_joint_move(0, data, 50, 50)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "1-8"
-            # 角度是否到达，如果到达控制机械臂到达吸盘上方
+            # 角度是否到达，如果到达控制机械臂到达夹爪上方
             elif self.public_class.ceramic_process_node == "1-8":
                 error_j1 = (float(self.public_class.new_data[0]) - float(
                     self.public_class.joint_pos[0]))
@@ -1922,7 +1959,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.ceramic_process_node = "3-0"
             # 控制机械臂到达过度点位
             elif self.public_class.ceramic_process_node == "2-0":
-                # 控制机械臂到达吸盘位置
+                # 控制机械臂到达夹爪位置
                 data = [float(self.public_class.tcp_pos[0]),
                         float(self.public_class.tcp_pos[1]) - 50.00,
                         float(self.public_class.tcp_pos[2]),
@@ -2225,7 +2262,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "3-4"
-            # 判断机械臂是否达到位置，如果到达,打开吸盘，再控制机械臂上升
+            # 判断机械臂是否达到位置，如果到达,夹紧气动夹爪，再控制机械臂上升
             elif self.public_class.ceramic_process_node == "3-4":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -2234,11 +2271,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 打开吸盘
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 6, 1)
-                    time.sleep(0.2)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
+                    # 夹紧气动夹爪
+                    self._gripper_close()
 
                     # 控制机械臂上升
                     data = [float(self.public_class.tcp_pos[0]),
@@ -2362,7 +2396,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "3-7-3"
-            # 关闭吸盘，然后在控制机械臂上升
+            # 松开气动夹爪，然后再控制机械臂上升
             elif self.public_class.ceramic_process_node == "3-7-3":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -2371,8 +2405,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 关闭吸盘
-                    self.btn_xipan_close_click()
+                    # 松开气动夹爪
+                    self._gripper_open()
                     time.sleep(1)
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1]),
@@ -2466,7 +2500,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "3-7-7"
-            # 打开吸盘，控制Z轴上升
+            # 夹紧气动夹爪，控制Z轴上升
             elif self.public_class.ceramic_process_node == "3-7-7":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -2475,11 +2509,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 打开吸盘
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 6, 1)
-                    time.sleep(0.2)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
+                    # 夹紧气动夹爪
+                    self._gripper_close()
 
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1]),
@@ -2557,7 +2588,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.ceramic_process_node = "3-10"
-            # 判断机械臂是否达到位置，如果到达，关闭吸盘，Z轴上升
+            # 判断机械臂是否达到位置，如果到达，松开气动夹爪，Z轴上升
             elif self.public_class.ceramic_process_node == "3-10":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -2566,8 +2597,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 关闭吸盘
-                    self.btn_xipan_close_click()
+                    # 松开气动夹爪
+                    self._gripper_open()
                     # 控制机械臂Z轴上升
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1]),
@@ -2644,18 +2675,18 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 # 获取机械臂控制器的数字输入信号
                 self.jaka.blinx_get_digital_input_status()
                 time.sleep(0.5)
-                # 将吸盘捆扎机的放置区的状态提出
+                # 将夹爪捆扎机的放置区的状态提出
                 xp_state = self.robot_DI_1
                 kzj_state = self.robot_DI_2
-                # 判断吸盘与捆扎机是否都在
+                # 判断夹爪与捆扎机是否都在
                 if xp_state == 1 and kzj_state == 1:
                     self.public_class.brick_process_node = "1-0"  # 如果两个末端执行器都在
-                # 判断如果吸盘在捆扎机不在
+                # 判断如果夹爪在捆扎机不在
                 elif xp_state == 1 and kzj_state != 1:
-                    self.public_class.brick_process_node = "2-0"  # 如果是吸盘就直接开始下一步
-                # 判断如果捆扎机在，吸盘不在
+                    self.public_class.brick_process_node = "2-0"  # 如果是夹爪就直接开始下一步
+                # 判断如果捆扎机在，夹爪不在
                 elif xp_state != 1 and kzj_state == 1:
-                    self.public_class.brick_process_node = "3-0"  # 需先放置捆扎机，在获取吸盘
+                    self.public_class.brick_process_node = "3-0"  # 需先放置捆扎机，在获取夹爪
                 # 如果两个都不在
                 elif xp_state != 1 and kzj_state != 1:
                     print("报警，请将末端执行器归位")
@@ -2684,14 +2715,17 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.joint_pos[5]))
                 if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                         -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                    # 控制末端移动90度
+                    # 控制末端到取夹爪上方J6角度
+                    sucker_pick_above_j6_angle = self._get_sucker_pick_j6_angle()
+                    if sucker_pick_above_j6_angle is None:
+                        sucker_pick_above_j6_angle = float(self.public_class.joint_pos[5]) + 90.00
                     data = [float(self.public_class.joint_pos[0]), float(self.public_class.joint_pos[1]),
                             float(self.public_class.joint_pos[2]), float(self.public_class.joint_pos[3]),
-                            float(self.public_class.joint_pos[4]), float(self.public_class.joint_pos[5]) + 90.00]
+                            float(self.public_class.joint_pos[4]), sucker_pick_above_j6_angle]
                     self.jaka.blinx_joint_move(0, data, 50, 50)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "1-2"
-            # 角度是否到达，如果到达控制机械臂到达吸盘上方
+            # 角度是否到达，如果到达控制机械臂到达夹爪上方
             elif self.public_class.brick_process_node == "1-2":
                 error_j1 = (float(self.public_class.new_data[0]) - float(
                     self.public_class.joint_pos[0]))
@@ -2707,17 +2741,12 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.joint_pos[5]))
                 if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                         -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                    # 控制机械臂到达吸盘上方
-                    data = [float(self.public_class.sucker_actuator_loc[0]),
-                            float(self.public_class.sucker_actuator_loc[1]),
-                            float(self.public_class.sucker_actuator_loc[2]) + 30.00,
-                            float(self.public_class.sucker_actuator_loc[3]),
-                            float(self.public_class.sucker_actuator_loc[4]),
-                            float(self.public_class.sucker_actuator_loc[5])]
+                    # 控制机械臂到达夹爪工具上方
+                    data = self._gripper_tool_station_pose("gripper_pick_approach_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "1-3"
-            # 判断坐标是否到达，如果到达先打开快换夹具，在控制机械臂到达吸盘位置
+            # 判断坐标是否到达，如果到达先打开快换夹具，在控制机械臂到达夹爪位置
             elif self.public_class.brick_process_node == "1-3":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -2727,17 +2756,9 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
                     # 快换夹具开
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 8, 1)
-                    time.sleep(0.5)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
-                    # 控制机械臂到达吸盘位置
-                    data = [float(self.public_class.sucker_actuator_loc[0]),
-                            float(self.public_class.sucker_actuator_loc[1]),
-                            float(self.public_class.sucker_actuator_loc[2]),
-                            float(self.public_class.sucker_actuator_loc[3]),
-                            float(self.public_class.sucker_actuator_loc[4]),
-                            float(self.public_class.sucker_actuator_loc[5])]
+                    self._quick_change_open()
+                    # 控制机械臂到达夹爪工具位置
+                    data = self._gripper_tool_station_pose("gripper_pick_dock_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "1-4"
@@ -2750,18 +2771,10 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 快换夹具开
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 8, 0)
-                    time.sleep(0.5)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
-                    # 控制机械臂到达吸盘位置
-                    data = [float(self.public_class.tcp_pos[0]),
-                            float(self.public_class.tcp_pos[1]),
-                            float(self.public_class.tcp_pos[2] + 10.00),
-                            float(self.public_class.tcp_pos[3]),
-                            float(self.public_class.tcp_pos[4]),
-                            float(self.public_class.tcp_pos[5])]
+                    # 快换夹具吸合
+                    self._quick_change_close()
+                    # 控制机械臂抬起夹爪工具
+                    data = self._gripper_tool_station_pose("gripper_pick_lift_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "1-5"
@@ -2774,13 +2787,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 控制机械臂退出吸盘放置位置
-                    data = [float(self.public_class.tcp_pos[0]),
-                            float(self.public_class.tcp_pos[1] + 100.00),
-                            float(self.public_class.tcp_pos[2]),
-                            float(self.public_class.tcp_pos[3]),
-                            float(self.public_class.tcp_pos[4]),
-                            float(self.public_class.tcp_pos[5])]
+                    # 控制机械臂退出夹爪工具库位
+                    data = self._gripper_tool_station_pose("gripper_pick_exit_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "1-6"
@@ -2800,7 +2808,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_joint_move(0, data, 50, 50)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "1-7"
-            # 角度是否到达，如果到达控制机械臂到达吸盘上方
+            # 角度是否到达，如果到达控制机械臂到达夹爪上方
             elif self.public_class.brick_process_node == "1-7":
                 error_j1 = (float(self.public_class.new_data[0]) - float(
                     self.public_class.joint_pos[0]))
@@ -2825,7 +2833,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_joint_move(0, data, 50, 50)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "1-8"
-            # 角度是否到达，如果到达控制机械臂到达吸盘上方
+            # 角度是否到达，如果到达控制机械臂到达夹爪上方
             elif self.public_class.brick_process_node == "1-8":
                 error_j1 = (float(self.public_class.new_data[0]) - float(
                     self.public_class.joint_pos[0]))
@@ -2854,7 +2862,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.brick_process_node = "3-0"
             # 控制机械臂到达过度点位
             elif self.public_class.brick_process_node == "2-0":
-                # 控制机械臂到达吸盘位置
+                # 控制机械臂到达夹爪位置
                 data = [float(self.public_class.tcp_pos[0]),
                         float(self.public_class.tcp_pos[1]) - 50.00,
                         float(self.public_class.tcp_pos[2]),
@@ -3178,7 +3186,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-4"
-            # 判断机械臂是否达到位置，如果到达,打开吸盘，再控制机械臂上升
+            # 判断机械臂是否达到位置，如果到达,夹紧气动夹爪，再控制机械臂上升
             elif self.public_class.brick_process_node == "3-4":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -3187,11 +3195,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 打开吸盘
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 6, 1)
-                    time.sleep(0.2)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
+                    # 夹紧气动夹爪
+                    self._gripper_close()
 
                     # 控制机械臂上升
                     data = [float(self.public_class.tcp_pos[0]),
@@ -3201,10 +3206,10 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             float(self.public_class.tcp_pos[4]),
                             float(self.public_class.tcp_pos[5])]
                     self._brick_record_event(
-                        "primary_suction_and_lift_command",
+                        "primary_gripper_close_and_lift_command",
                         command_target=data,
                         extra={
-                            "suction_state": "open",
+                            "gripper_state": "closed",
                             "executed_pick_tcp_pose": self._normalize_pose_values(self.public_class.tcp_pos),
                         },
                     )
@@ -3331,7 +3336,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-7-3"
-            # 关闭吸盘，然后在控制机械臂上升
+            # 松开气动夹爪，然后再控制机械臂上升
             elif self.public_class.brick_process_node == "3-7-3":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -3340,8 +3345,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 关闭吸盘
-                    self.btn_xipan_close_click()
+                    # 松开气动夹爪
+                    self._gripper_open()
                     time.sleep(1)
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1]),
@@ -3352,7 +3357,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self._brick_record_event(
                         "secondary_release_and_lift_command",
                         command_target=data,
-                        extra={"suction_state": "closed"},
+                        extra={"gripper_state": "open"},
                     )
                     self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
@@ -3604,7 +3609,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-7-7"
-            # 打开吸盘，控制Z轴上升
+            # 夹紧气动夹爪，控制Z轴上升
             elif self.public_class.brick_process_node == "3-7-7":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -3613,11 +3618,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 打开吸盘
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 6, 1)
-                    time.sleep(0.2)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
+                    # 夹紧气动夹爪
+                    self._gripper_close()
 
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1]),
@@ -3626,10 +3628,10 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                             float(self.public_class.tcp_pos[4]),
                             float(self.public_class.tcp_pos[5])]
                     self._brick_record_event(
-                        "secondary_suction_and_lift_command",
+                        "secondary_gripper_close_and_lift_command",
                         command_target=data,
                         extra={
-                            "suction_state": "open",
+                            "gripper_state": "closed",
                             "executed_secondary_pick_tcp_pose": self._normalize_pose_values(self.public_class.tcp_pos),
                         },
                     )
@@ -3759,7 +3761,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
                     self.public_class.brick_process_node = "3-10"
-            # 判断机械臂是否达到位置，如果到达，关闭吸盘，Z轴上升
+            # 判断机械臂是否达到位置，如果到达，松开气动夹爪，Z轴上升
             elif self.public_class.brick_process_node == "3-10":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -3768,8 +3770,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 关闭吸盘
-                    self.btn_xipan_close_click()
+                    # 松开气动夹爪
+                    self._gripper_open()
                     # 控制机械臂Z轴上升
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1]),
@@ -3780,7 +3782,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self._brick_record_event(
                         "place_release_and_lift_command",
                         command_target=data,
-                        extra={"suction_state": "closed"},
+                        extra={"gripper_state": "open"},
                     )
                     self._brick_move_linear_pick(data)
                     self.public_class.new_data = data
@@ -3883,17 +3885,17 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 # 获取机械臂控制器的数字输入信号
                 self.jaka.blinx_get_digital_input_status()
                 time.sleep(0.5)
-                # 将吸盘捆扎机的放置区的状态提出
+                # 将夹爪捆扎机的放置区的状态提出
                 xp_state = self.robot_DI_1
                 kzj_state = self.robot_DI_2
 
-                # 判断吸盘与捆扎机是否都在
+                # 判断夹爪与捆扎机是否都在
                 if xp_state == 1 and kzj_state == 1:
                     self.public_class.rebar_process_node = "1-0"   # 如果两个末端执行器都在
-                # 判断如果吸盘在捆扎机不在
+                # 判断如果夹爪在捆扎机不在
                 elif xp_state == 1 and kzj_state != 1:
                     self.public_class.rebar_process_node = "3-0"   # 如果是捆扎机就直接开始下一步
-                # 判断如果捆扎机在，吸盘不在
+                # 判断如果捆扎机在，夹爪不在
                 elif xp_state != 1 and kzj_state == 1:
                     self.public_class.rebar_process_node = "2-0"   # 需先放置捆扎机，在获取夹爪
                 # 如果两个都不在
@@ -3996,7 +3998,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.jaka.blinx_set_digital_output(6, 8, 0)
                     time.sleep(0.5)
                     self.jaka.blinx_set_digital_output(6, 5, 0)
-                    # 控制机械臂到达吸盘位置
+                    # 控制机械臂到达夹爪位置
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1]),
                             float(self.public_class.tcp_pos[2] + 10.00),
@@ -4015,7 +4017,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 控制机械臂退出吸盘放置位置
+                    # 控制机械臂退出夹爪放置位置
                     data = [float(self.public_class.tcp_pos[0]),
                             float(self.public_class.tcp_pos[1] + 100.00),
                             float(self.public_class.tcp_pos[2]),
@@ -4115,7 +4117,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.new_data = data
                     self.public_class.rebar_process_node = "3-0"
             
-            # 控制走放置吸盘流程
+            # 控制走放置夹爪流程
             # 控制机械臂旋转180度
             elif self.public_class.rebar_process_node == "2-0":
                 data = [float(self.public_class.joint_pos[0]) - 180.00, float(self.public_class.joint_pos[1]),
@@ -4124,7 +4126,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 self.jaka.blinx_joint_move(0, data, 50, 50)
                 self.public_class.new_data = data
                 self.public_class.rebar_process_node = "2-1"
-            # 角度是否到达，如果到达控制J6旋转90都
+            # 角度是否到达，如果到达控制J6到夹爪IO接口对接角度
             elif self.public_class.rebar_process_node == "2-1":
                 error_j1 = (float(self.public_class.new_data[0]) - float(
                     self.public_class.joint_pos[0]))
@@ -4140,12 +4142,13 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.joint_pos[5]))
                 if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                         -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                    # 控制末端移动90度
-                    data = [float(self.public_class.joint_pos[0]), float(self.public_class.joint_pos[1]),
-                            float(self.public_class.joint_pos[2]), float(self.public_class.joint_pos[3]),
-                            float(self.public_class.joint_pos[4]), float(self.public_class.joint_pos[5]) + 90.00]
-                    self.jaka.blinx_joint_move(0, data, 50, 50)
-                    self.public_class.new_data = data
+                    gripper_pick_above_j6_angle = self._get_gripper_pick_j6_angle()
+                    if gripper_pick_above_j6_angle is not None:
+                        data = [float(self.public_class.joint_pos[0]), float(self.public_class.joint_pos[1]),
+                                float(self.public_class.joint_pos[2]), float(self.public_class.joint_pos[3]),
+                                float(self.public_class.joint_pos[4]), gripper_pick_above_j6_angle]
+                        self.jaka.blinx_joint_move(0, data, 50, 50)
+                        self.public_class.new_data = data
                     self.public_class.rebar_process_node = "2-2"
             # 角度是否到达，如果到达控制机械臂待放置位置
             elif self.public_class.rebar_process_node == "2-2":
@@ -4163,17 +4166,12 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                     self.public_class.joint_pos[5]))
                 if (-0.1 <= error_j1 <= 0.1) and (-0.1 <= error_j2 <= 0.1) and (-0.1 <= error_j3 <= 0.1) and (
                         -0.1 <= error_j4 <= 0.1) and (-0.1 <= error_j5 <= 0.1) and (-0.1 <= error_j6 <= 0.1):
-                    # 控制机械臂待放置位置
-                    data = [float(self.public_class.sucker_actuator_loc[0]),
-                            float(self.public_class.sucker_actuator_loc[1]) + 100.00,
-                            float(self.public_class.sucker_actuator_loc[2]) + 10.00,
-                            float(self.public_class.sucker_actuator_loc[3]),
-                            float(self.public_class.sucker_actuator_loc[4]),
-                            float(self.public_class.sucker_actuator_loc[5])]
+                    # 控制机械臂到达夹爪工具待放置位置
+                    data = self._gripper_tool_station_pose("gripper_place_approach_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.rebar_process_node = "2-3"
-            # 判断坐标是否到达，如果到达先控制机械臂到达吸盘放置区位置上一公分位置
+            # 判断坐标是否到达，如果到达先控制机械臂到达夹爪放置区位置上一公分位置
             elif self.public_class.rebar_process_node == "2-3":
                 error_x = (float(self.public_class.new_data[0]) - float(
                     self.public_class.tcp_pos[0]))
@@ -4182,13 +4180,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 控制机械臂到达吸盘位置
-                    data = [float(self.public_class.tcp_pos[0]),
-                            float(self.public_class.tcp_pos[1]) - 100.00,
-                            float(self.public_class.tcp_pos[2]),
-                            float(self.public_class.tcp_pos[3]),
-                            float(self.public_class.tcp_pos[4]),
-                            float(self.public_class.tcp_pos[5])]
+                    # 控制机械臂到达夹爪工具放置预备位置
+                    data = self._gripper_tool_station_pose("gripper_place_pre_release_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.rebar_process_node = "2-4"
@@ -4201,22 +4194,14 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 控制机械臂到达吸盘位置
-                    data = [float(self.public_class.tcp_pos[0]),
-                            float(self.public_class.tcp_pos[1]),
-                            float(self.public_class.tcp_pos[2]) - 10.00,
-                            float(self.public_class.tcp_pos[3]),
-                            float(self.public_class.tcp_pos[4]),
-                            float(self.public_class.tcp_pos[5])]
+                    # 控制机械臂到达夹爪工具放置位置
+                    data = self._gripper_tool_station_pose("gripper_place_dock_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.rebar_process_node = "2-5"
                     time.sleep(1)
                     # 快换夹具释放
-                    self.jaka.blinx_set_digital_output(6, 5, 1)
-                    self.jaka.blinx_set_digital_output(6, 8, 1)
-                    time.sleep(0.5)
-                    self.jaka.blinx_set_digital_output(6, 5, 0)
+                    self._quick_change_open()
             # 判断坐标是否到达，如果到达控制z轴上升
             elif self.public_class.rebar_process_node == "2-5":
                 error_x = (float(self.public_class.new_data[0]) - float(
@@ -4226,13 +4211,8 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
                 error_z = (float(self.public_class.new_data[2]) - float(
                     self.public_class.tcp_pos[2]))
                 if (-0.1 <= error_x <= 0.1) and (-0.1 <= error_y <= 0.1) and (-0.1 <= error_z <= 0.1):
-                    # 控制机械臂退出吸盘放置位置
-                    data = [float(self.public_class.tcp_pos[0]),
-                            float(self.public_class.tcp_pos[1]),
-                            float(self.public_class.tcp_pos[2] + 30.00),
-                            float(self.public_class.tcp_pos[3]),
-                            float(self.public_class.tcp_pos[4]),
-                            float(self.public_class.tcp_pos[5])]
+                    # 控制机械臂退出夹爪工具库位
+                    data = self._gripper_tool_station_pose("gripper_place_lift_offset")
                     self.jaka.blinx_moveL(data, 250, 5000, 0)
                     self.public_class.new_data = data
                     self.public_class.rebar_process_node = "2-6"
@@ -4690,7 +4670,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
     # endregion
 
     # region 流程按钮事件
-    # 吸盘取
+    # 夹爪取
     def blinx_btn_suction_get(self):
         # 获取滑轨当前位置
         self.jaka.blinx_get_analog_input(6, 25)
@@ -4705,7 +4685,7 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
         else:
             QMessageBox.warning(mainWindow, "Error", "请将滑轨回到初始位置", QMessageBox.Ok)
 
-    # 吸盘放
+    # 夹爪放
     def blinx_btn_suction_set(self):
         # 获取滑轨当前位置
         self.jaka.blinx_get_analog_input(6, 25)
@@ -5401,29 +5381,19 @@ class Blinx_XXXY_Robot_Vision(QMainWindow, Ui_MainWindow, ):
         time.sleep(0.2)
         self.jaka.blinx_set_digital_output(6, 5, 0)
 
-    # 吸盘打开/关闭
+    # 气动夹爪夹紧/松开
     def btn_xipan_open_click(self):
-        self.jaka.blinx_set_digital_output(6, 5, 1)
-        self.jaka.blinx_set_digital_output(6, 6, 1)
-        time.sleep(0.2)
-        self.jaka.blinx_set_digital_output(6, 5, 0)
+        self._gripper_close()
+
     def btn_xipan_close_click(self):
-        self.jaka.blinx_set_digital_output(6, 5, 1)
-        self.jaka.blinx_set_digital_output(6, 6, 0)
-        time.sleep(0.2)
-        self.jaka.blinx_set_digital_output(6, 5, 0)
+        self._gripper_open()
 
     # 快换打开/关闭
     def btn_kh_open_click(self):
-        self.jaka.blinx_set_digital_output(6, 5, 1)
-        self.jaka.blinx_set_digital_output(6, 8, 1)
-        time.sleep(0.2)
-        self.jaka.blinx_set_digital_output(6, 5, 0)
+        self._quick_change_open(delay=0.2)
+
     def btn_kh_close_click(self):
-        self.jaka.blinx_set_digital_output(6, 5, 1)
-        self.jaka.blinx_set_digital_output(6, 8, 0)
-        time.sleep(0.2)
-        self.jaka.blinx_set_digital_output(6, 5, 0)
+        self._quick_change_close(delay=0.2)
 
     # 滑轨向左/向右
     def btn_servor_left_click(self):

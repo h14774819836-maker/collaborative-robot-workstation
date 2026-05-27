@@ -12,6 +12,16 @@ def _parse_literal(config, section, option, fallback):
         return fallback
 
 
+def _parse_optional_float(config, section, option):
+    raw_value = config.get(section, option, fallback="").strip()
+    if raw_value == "":
+        return None
+    try:
+        return float(raw_value)
+    except ValueError:
+        return None
+
+
 class Blinx_Public_Class:
     def __init__(self):
         config = configparser.ConfigParser()
@@ -208,6 +218,75 @@ class Blinx_Public_Class:
         zero_pose = [0, 0, 0, 0, 0, 0]
         self.initial_angle = _parse_literal(config, "Positioning", "initial_angle", zero_pose)
         self.sucker_actuator_loc = _parse_literal(config, "Positioning", "sucker_actuator_loc", zero_pose)
+        self.gripper_actuator_loc = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_actuator_loc",
+            self.sucker_actuator_loc,
+        )
+        self.sucker_pick_above_j6_angle = _parse_optional_float(
+            config,
+            "Positioning",
+            "sucker_pick_above_j6_angle",
+        )
+        self.gripper_pick_above_j6_angle = _parse_optional_float(
+            config,
+            "Positioning",
+            "gripper_pick_above_j6_angle",
+        )
+        self.gripper_pick_j6_delta = config.getfloat(
+            "Positioning",
+            "gripper_pick_j6_delta",
+            fallback=180.0,
+        )
+        self.gripper_pick_approach_offset = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_pick_approach_offset",
+            [0, 0, 30],
+        )
+        self.gripper_pick_dock_offset = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_pick_dock_offset",
+            [0, 0, 0],
+        )
+        self.gripper_pick_lift_offset = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_pick_lift_offset",
+            [0, 0, 10],
+        )
+        self.gripper_pick_exit_offset = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_pick_exit_offset",
+            [0, 100, 10],
+        )
+        self.gripper_place_approach_offset = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_place_approach_offset",
+            [0, 100, 10],
+        )
+        self.gripper_place_pre_release_offset = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_place_pre_release_offset",
+            [0, 0, 10],
+        )
+        self.gripper_place_dock_offset = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_place_dock_offset",
+            [0, 0, 0],
+        )
+        self.gripper_place_lift_offset = _parse_literal(
+            config,
+            "Positioning",
+            "gripper_place_lift_offset",
+            [0, 0, 30],
+        )
         self.bundle_actuator_loc = _parse_literal(config, "Positioning", "bundle_actuator_loc", zero_pose)
         self.identify_loc1 = _parse_literal(config, "Positioning", "identify_loc1", zero_pose)
         self.identify_loc2 = _parse_literal(config, "Positioning", "identify_loc2", zero_pose)
